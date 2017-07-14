@@ -99,3 +99,12 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# carpyncho
+_data/
+_input_data/
+carpyncho-dev.db
+carpyncho/bin/vvv_flx2mag
+carpyncho/bin/tff
+example_data.tar.bz2
+example_data/
