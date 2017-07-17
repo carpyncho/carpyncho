@@ -70,6 +70,11 @@ class Tile(db.Model):
         self._raw_filename = os.path.basename(fpath)
         shutil.copyfile(fpath, self.raw_file_path)
 
+    def store_npy_file(self, arr):
+        self._npy_filename = os.path.splitext(self._raw_filename)[0] + ".npy"
+        np.save(self.npy_file_path, arr)
+
+
 
 class PawprintStack(db.Model):
     """Represent a VVV pawprint stack in some band and some epoch.

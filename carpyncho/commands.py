@@ -32,7 +32,7 @@ from sqlalchemy_utils import database_exists, create_database, drop_database
 from corral import cli, conf, db, core
 
 from carpyncho import bin
-from carpyncho.models import Tile
+from carpyncho.models import Tile, PawprintStack, PawprintStackXTile
 
 
 # =============================================================================
@@ -115,16 +115,12 @@ class LSTile(cli.BaseCommand):
         return e.lower() not in ("0", "", "false")
 
     def setup(self):
-        choices = "True 1 true 0 false False".split()
-        self.parser.add_argument(
-            "-r", "--ready", dest="ready", action="store", choices=choices,
-            help="Show only the given ready status")
         self.parser.add_argument(
             "-st", "--status", dest="status", action="store",
             choices=Tile.statuses.enums, nargs="+",
             help="Show only the given status")
 
-    def handle(self, ready, status):
+    def handle(self, status):
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
         table.header(("Tile", "Status", "Size"))
@@ -132,42 +128,38 @@ class LSTile(cli.BaseCommand):
         with db.session_scope() as session:
             query = session.query(
                 Tile.name, Tile.status, Tile.size)
-            if ready is not None:
-                ready = self._bool(ready)
-                query = query.filter(Tile.ready == ready)
             if status:
                 query = query.filter(Tile.status.in_(status))
             map(table.add_row, query)
             cnt = query.count()
         print(table.draw())
         print("Count: {}".format(cnt))
-#~
-#~
-#~ class LSPawprint(cli.BaseCommand):
-    #~ """List all registered pawprints"""
-#~
-    #~ def setup(self):
-        #~ self.parser.add_argument(
-            #~ "-st", "--status", dest="status", action="store",
-            #~ choices=Pawprint.statuses.enums, nargs="+",
-            #~ help="Show only the given status")
-#~
-    #~ def handle(self, status):
-        #~ table = Texttable(max_width=0)
-        #~ table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        #~ table.header(("Pawprint", "Status", "MJD", "Size", "Readed"))
-        #~ cnt = 0
-#~
-        #~ with db.session_scope() as session:
-            #~ query = session.query(
-                #~ Pawprint.name, Pawprint.status, Pawprint.mjd,
-                #~ Pawprint.data_size, Pawprint.data_readed)
-            #~ if status:
-                #~ query = query.filter(Pawprint.status.in_(status))
-            #~ map(table.add_row, query)
-            #~ cnt = query.count()
-        #~ print(table.draw())
-        #~ print("Count: {}".format(cnt))
+
+
+class LSPawprint(cli.BaseCommand):
+    """List all registered pawprint stacks"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "-st", "--status", dest="status", action="store",
+            choices=PawprintStack.statuses.enums, nargs="+",
+            help="Show only the given status")
+
+    def handle(self, status):
+        table = Texttable(max_width=0)
+        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
+        table.header(("Pawprint", "Status", "Band", "MJD", "Size"))
+        cnt = 0
+        with db.session_scope() as session:
+            query = session.query(
+                PawprintStack.name, PawprintStack.status,
+                PawprintStack.band, PawprintStack.mjd, PawprintStack.size)
+            if status:
+                query = query.filter(PawprintStack.status.in_(status))
+            map(table.add_row, query)
+            cnt = query.count()
+        print(table.draw())
+        print("Count: {}".format(cnt))
 #~
 #~
 #~ class LSSync(cli.BaseCommand):

@@ -59,19 +59,7 @@ LOADER = "carpyncho.load.Loader"
 
 # Pipeline processor steps
 STEPS = [
-    #~ "carpyncho.steps.measure_tile.MeasureTile",
-    #~ "carpyncho.steps.read_tile.ReadTile",
-    #~ "carpyncho.steps.xy_master_source.XYMasterSource",
-#~
-    #~ "carpyncho.steps.mjd_pawprint.MJDPawprint",
-    #~ "carpyncho.steps.measure_pawprint.MeasurePawprint",
-    #~ "carpyncho.steps.read_pawprint.ReadPawprint",
-    #~ "carpyncho.steps.hjd_pawprint_source.HJDPawprintSource",
-#~
-    #~ "carpyncho.steps.prepare_pawprint_to_sync.PreparePawprintToSync",
-    #~ "carpyncho.steps.match.MatchSources",
-#~
-    #~ "carpyncho.steps.is_tile_ready.IsTileReady",
+    "carpyncho.steps.prepare_tile.PrepareTile"
 ]
 
 
