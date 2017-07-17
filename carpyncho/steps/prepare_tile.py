@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# =============================================================================
+# IMPORTS
+# =============================================================================
+
 from corral import run
 
 import numpy as np
 
 from ..models import Tile
 
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
 
 EPOCHS = 3
 
@@ -24,11 +32,19 @@ MASTER_SOURCE_DEFAULT_PARAMS = {
 }
 
 
+# =============================================================================
+# STEP
+# =============================================================================
+
 class PrepareTile(run.Step):
+    """Convert the tile into a numpy array to be matched
+    again their pawprints
+
+    """
 
     model = Tile
     conditions = [model.status == "raw"]
-    groups = ["measurement"]
+    groups = ["preprocess"]
     production_procno = 1
 
     def read_dat(self, fp):
