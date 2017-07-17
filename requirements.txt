@@ -50,7 +50,6 @@ six==1.10.0
 skll==1.2
 SQLAlchemy==1.0.9
 SQLAlchemy-Utils==0.31.4
-tables==3.2.2
 texttable==0.8.4
 tox==2.3.1
 traitlets==4.0.0
