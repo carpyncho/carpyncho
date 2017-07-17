@@ -23,7 +23,7 @@ import glob
 from corral import run
 from corral.conf import settings
 
-from carpyncho.models import Tile, PawprintStack
+from carpyncho.models import Tile, PawprintStack, PawprintStackXTile
 
 
 # =============================================================================
@@ -64,10 +64,12 @@ class Loader(run.Loader):
     def generate(self):
 
         for tile_name, tile_path in self.tiles.items():
-            tile = Tile(name=tile_name)
-            tile.store_raw_file(tile_path)
-            yield tile
-            self.session.commit()
+            tile = self.session.query(Tile).filter_by(name=tile_name).first()
+            if tile is None:
+                tile = Tile(name=tile_name)
+                tile.store_raw_file(tile_path)
+                yield tile
+                self.session.commit()
             os.remove(tile_path)
 
         for tile_name, pawprints in self.pawprints.items():
@@ -80,12 +82,8 @@ class Loader(run.Loader):
                     pwp = PawprintStack(name=name)
                     pwp.store_raw_file(pwp_path)
                     yield pwp
-#~
-                #~ pxt = self.session.query(PawprintXTile).filter_by(
-                    #~ pawprint=pwp, tile=tile).first()
-                #~ if pxt is None:
-                    #~ pxt = PawprintXTile(pawprint=pwp, tile=tile)
-                    #~ yield pxt
-#~
+
+                    pxt = PawprintStackXTile(pawprint_stack=pwp, tile=tile)
+                    yield pxt
                 self.session.commit()
-                #~ os.remove(pwp_path)
+                os.remove(pwp_path)

@@ -3,9 +3,16 @@
 
 import os
 
+from corral import core
+
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
 PATH = os.path.abspath(os.path.dirname(__file__))
 
-commands = "\n".join([
+COMMANDS = "\n".join([
     l.strip() for l in
     """
         set -e;
@@ -15,8 +22,12 @@ commands = "\n".join([
         cd - > /dev/null;
 
     """.format(PATH).splitlines()
-]).strip()
+])
 
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
 
 def build():
-    os.system(commands)
+    os.system(COMMANDS)

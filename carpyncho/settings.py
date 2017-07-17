@@ -104,6 +104,8 @@ from carpyncho.local_settings import *  # noqa
 
 DATA_PATH = os.path.abspath(DATA_PATH)
 
+BIN_PATH = os.path.join(PATH, "bin")
+
 RAW_TILES_DIR = os.path.join(DATA_PATH, "raw_tiles")
 NPY_TILES_DIR = os.path.join(DATA_PATH, "npy_tiles")
 

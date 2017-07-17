@@ -15,7 +15,6 @@
 # =============================================================================
 # IMPORTS
 # =============================================================================
-
 import os
 import shutil
 
@@ -23,8 +22,6 @@ import numpy as np
 
 from corral import db
 from corral.conf import settings
-
-from astropy.coordinates import SkyCoord
 
 
 # =============================================================================
@@ -59,19 +56,19 @@ class Tile(db.Model):
         return "<Tile '{}'>".format(self.name)
 
     @property
-    def raw_file(self):
+    def raw_file_path(self):
         if self._raw_filename:
             return os.path.join(
                 settings.RAW_TILES_DIR, self._raw_filename)
     @property
-    def npy_file(self):
+    def npy_file_path(self):
         if self._npy_filename:
             return os.path.join(
                 settings.NPY_TILES_DIR, self._npy_filename)
 
     def store_raw_file(self, fpath):
         self._raw_filename = os.path.basename(fpath)
-        shutil.copyfile(fpath, self.raw_file)
+        shutil.copyfile(fpath, self.raw_file_path)
 
 
 class PawprintStack(db.Model):
@@ -107,25 +104,53 @@ class PawprintStack(db.Model):
             repr(self.name), repr(self.band))
 
     @property
-    def raw_file(self):
+    def raw_file_path(self):
         if self._raw_filename:
-            yearmonth = self._filename[1:7]
-            day = self._filename[7:9]
+            yearmonth = self._raw_filename[1:7]
+            day = self._raw_filename[7:9]
             return os.path.join(
                 settings.RAW_PAWPRINTS_DIR, yearmonth, day, self._raw_filename)
 
     @property
-    def npy_file(self):
+    def npy_file_path(self):
         if self._npy_filename:
             yearmonth = self._filename[1:7]
             day = self._filename[7:9]
             return os.path.join(
                 settings.NPY_PAWPRINTS_DIR, yearmonth, day, self._npy_filename)
 
-    def store_file(self, fpath):
-        self._filename = os.path.basename(fpath)
-        file_path = self.file_path()
+    def store_raw_file(self, fpath):
+        self._raw_filename = os.path.basename(fpath)
+        file_path = self.raw_file_path
         file_dir = os.path.dirname(file_path)
         if not os.path.isdir(file_dir):
             os.makedirs(file_dir)
         shutil.copyfile(fpath, file_path)
+
+
+
+class PawprintStackXTile(db.Model):
+
+    __tablename__ = "PawprintStackXTile"
+    __table_args__ = (
+        db.UniqueConstraint('pawprint_stack_id', 'tile_id',
+                            name='_pawprint_tile_uc'),
+    )
+
+    statuses = db.Enum("raw", "sync", name="pawprint_x_tile_statuses")
+
+    id = db.Column(db.Integer, db.Sequence('pxt_id_seq'), primary_key=True)
+
+    pawprint_stack_id = db.Column(
+        db.Integer, db.ForeignKey('PawprintStack.id'), nullable=False)
+    pawprint_stack = db.relationship(
+        "PawprintStack", backref=db.backref("pxts"))
+
+    tile_id = db.Column(db.Integer, db.ForeignKey('Tile.id'), nullable=False)
+    tile = db.relationship("Tile", backref=db.backref("pxts"))
+
+    status = db.Column(statuses, default="raw")
+
+    def __repr__(self):
+        string = "<PXT '{}: {}'>"
+        return string.format(self.tile.name, self.pawprint.name)

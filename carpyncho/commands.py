@@ -78,7 +78,8 @@ if conf.settings.DEBUG:
             except OSError:
                 pass
 
-            os.system("tar jxf example_data.tar.bz2")
+            if not os.path.exists("example_data"):
+                os.system("tar jxf res/example_data.tar.bz2")
 
             shutil.copytree("example_data", "_input_data")
             os.system("python in_corral.py createdb --noinput")
@@ -91,7 +92,7 @@ class Paths(cli.BaseCommand):
     def handle(self):
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        table.header(("Propuse", "Path"))
+        table.header(("Name", "Path"))
         table.add_row(("Binary Extensions", conf.settings.BIN_PATH))
         table.add_row(("Input Data", conf.settings.INPUT_PATH))
         table.add_row(("Storage", conf.settings.DATA_PATH))
@@ -105,43 +106,41 @@ class BuildBin(cli.BaseCommand):
         core.logger.info("Building bin extensions...")
         bin.build()
         core.logger.info("Done")
-#~
-#~
-#~ class LSTile(cli.BaseCommand):
-    #~ """List all registered tiles"""
-#~
-    #~ def _bool(self, e):
-        #~ return e.lower() not in ("0", "", "false")
-#~
-    #~ def setup(self):
-        #~ choices = "True 1 true 0 false False".split()
-        #~ self.parser.add_argument(
-            #~ "-r", "--ready", dest="ready", action="store", choices=choices,
-            #~ help="Show only the given ready status")
-        #~ self.parser.add_argument(
-            #~ "-st", "--status", dest="status", action="store",
-            #~ choices=Tile.statuses.enums, nargs="+",
-            #~ help="Show only the given status")
-#~
-    #~ def handle(self, ready, status):
-        #~ table = Texttable(max_width=0)
-        #~ table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        #~ table.header(("Tile", "Status", "Size", "Readed", "Ready"))
-        #~ cnt = 0
-#~
-        #~ with db.session_scope() as session:
-            #~ query = session.query(
-                #~ Tile.name, Tile.status, Tile.data_size,
-                #~ Tile.data_readed, Tile.ready)
-            #~ if ready is not None:
-                #~ ready = self._bool(ready)
-                #~ query = query.filter(Tile.ready == ready)
-            #~ if status:
-                #~ query = query.filter(Tile.status.in_(status))
-            #~ map(table.add_row, query)
-            #~ cnt = query.count()
-        #~ print(table.draw())
-        #~ print("Count: {}".format(cnt))
+
+
+class LSTile(cli.BaseCommand):
+    """List all registered tiles"""
+
+    def _bool(self, e):
+        return e.lower() not in ("0", "", "false")
+
+    def setup(self):
+        choices = "True 1 true 0 false False".split()
+        self.parser.add_argument(
+            "-r", "--ready", dest="ready", action="store", choices=choices,
+            help="Show only the given ready status")
+        self.parser.add_argument(
+            "-st", "--status", dest="status", action="store",
+            choices=Tile.statuses.enums, nargs="+",
+            help="Show only the given status")
+
+    def handle(self, ready, status):
+        table = Texttable(max_width=0)
+        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
+        table.header(("Tile", "Status", "Size"))
+        cnt = 0
+        with db.session_scope() as session:
+            query = session.query(
+                Tile.name, Tile.status, Tile.size)
+            if ready is not None:
+                ready = self._bool(ready)
+                query = query.filter(Tile.ready == ready)
+            if status:
+                query = query.filter(Tile.status.in_(status))
+            map(table.add_row, query)
+            cnt = query.count()
+        print(table.draw())
+        print("Count: {}".format(cnt))
 #~
 #~
 #~ class LSPawprint(cli.BaseCommand):
