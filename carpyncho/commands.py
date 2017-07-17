@@ -160,34 +160,27 @@ class LSPawprint(cli.BaseCommand):
             cnt = query.count()
         print(table.draw())
         print("Count: {}".format(cnt))
-#~
-#~
-#~ class LSSync(cli.BaseCommand):
-    #~ """List the status of every pawprint and thir tile"""
-#~
-    #~ def setup(self):
-        #~ group = self.parser.add_mutually_exclusive_group()
-        #~ group.add_argument(
-            #~ '-s', '--synced', dest='filter',
-            #~ action='store_const', const="synced", default="all",
-            #~ help='display only the synced pawprints')
-        #~ group.add_argument(
-            #~ '-u', '--unsynced', dest='filter',
-            #~ action='store_const', const="unsynced",
-            #~ help='display only the unsynced pawprints')
-#~
-    #~ def handle(self, filter):
-        #~ table = Texttable(max_width=0)
-        #~ table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        #~ table.header(("Tile", "Pawprint", "Status"))
-#~
-        #~ with db.session_scope() as session:
-            #~ query = session.query(PawprintXTile)
-            #~ if filter == "synced":
-                #~ query = query.filter(PawprintXTile.status == "sync")
-            #~ elif filter == "unsynced":
-                #~ query = query.filter(PawprintXTile.status != "sync")
-#~
-            #~ for pxt in query:
-                #~ table.add_row([pxt.tile.name, pxt.pawprint.name, pxt.status])
-            #~ print(table.draw())
+
+
+class LSSync(cli.BaseCommand):
+    """List the status of every pawprint-stack and their tile"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "-st", "--status", dest="status", action="store",
+            choices=PawprintStackXTile.statuses.enums, nargs="+",
+            help="Show only the given status")
+
+    def handle(self, status):
+        table = Texttable(max_width=0)
+        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
+        table.header(("Tile", "Pawprint", "Status"))
+
+        with db.session_scope() as session:
+            query = session.query(PawprintStackXTile)
+            if status:
+                query = query.filter(PawprintStackXTile.status.in_(status))
+            for pxt in query:
+                table.add_row([pxt.tile.name,
+                               pxt.pawprint_stack.name, pxt.status])
+            print(table.draw())
