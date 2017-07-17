@@ -84,7 +84,13 @@ EMAIL = {
 
 MIGRATIONS_SETTINGS = os.path.join(PATH, "migrations", "alembic.ini")
 
-from carpyncho.local_settings import *  # noqa
+try:
+    from carpyncho.local_settings import *  # noqa
+except ImportError:
+    print "local_settings.py not found"
+    DEBUG_PROCESS = True
+    INPUT_PATH = os.path.abspath(os.path.join(PATH, "..", "_input_data"))
+    DATA_PATH = os.path.abspath(os.path.join(PATH, "..", "_data"))
 
 
 # =============================================================================
@@ -92,8 +98,6 @@ from carpyncho.local_settings import *  # noqa
 # =============================================================================
 
 DATA_PATH = os.path.abspath(DATA_PATH)
-
-BIN_PATH = os.path.join(PATH, "bin")
 
 RAW_TILES_DIR = os.path.join(DATA_PATH, "raw_tiles")
 NPY_TILES_DIR = os.path.join(DATA_PATH, "npy_tiles")

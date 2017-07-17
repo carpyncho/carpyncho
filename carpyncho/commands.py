@@ -93,7 +93,6 @@ class Paths(cli.BaseCommand):
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
         table.header(("Name", "Path"))
-        table.add_row(("Binary Extensions", conf.settings.BIN_PATH))
         table.add_row(("Input Data", conf.settings.INPUT_PATH))
         table.add_row(("Storage", conf.settings.DATA_PATH))
         print(table.draw())

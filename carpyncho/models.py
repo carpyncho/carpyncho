@@ -41,8 +41,6 @@ class Tile(db.Model):
 
     statuses = db.Enum("raw", "ready", name="tile_statuses")
 
-    ready = db.Column(db.Boolean, default=False)
-
     id = db.Column(db.Integer, db.Sequence('tile_id_seq'), primary_key=True)
     name = db.Column(db.String(255), nullable=False, index=True, unique=True)
 
@@ -73,7 +71,6 @@ class Tile(db.Model):
     def store_npy_file(self, arr):
         self._npy_filename = os.path.splitext(self._raw_filename)[0] + ".npy"
         np.save(self.npy_file_path, arr)
-
 
 
 class PawprintStack(db.Model):
@@ -119,22 +116,31 @@ class PawprintStack(db.Model):
     @property
     def npy_file_path(self):
         if self._npy_filename:
-            yearmonth = self._filename[1:7]
-            day = self._filename[7:9]
+            yearmonth = self._raw_filename[1:7]
+            day = self._raw_filename[7:9]
             return os.path.join(
                 settings.NPY_PAWPRINTS_DIR, yearmonth, day, self._npy_filename)
 
     def store_raw_file(self, fpath):
         self._raw_filename = os.path.basename(fpath)
-        file_path = self.raw_file_path
-        file_dir = os.path.dirname(file_path)
+        file_dir = os.path.dirname(self.raw_file_path)
         if not os.path.isdir(file_dir):
             os.makedirs(file_dir)
-        shutil.copyfile(fpath, file_path)
+        shutil.copyfile(fpath, self.raw_file_path)
 
+    def store_npy_file(self, arr):
+        self._npy_filename = os.path.splitext(self._raw_filename)[0] + ".npy"
+        file_dir = os.path.dirname(self.npy_file_path)
+        if not os.path.isdir(file_dir):
+            os.makedirs(file_dir)
+        np.save(self.npy_file_path, arr)
 
 
 class PawprintStackXTile(db.Model):
+    """Relation between a pawprint-stack and a tile. Because the virca, overlap
+    some pawprints can be in two tiles
+
+    """
 
     __tablename__ = "PawprintStackXTile"
     __table_args__ = (
@@ -142,7 +148,7 @@ class PawprintStackXTile(db.Model):
                             name='_pawprint_tile_uc'),
     )
 
-    statuses = db.Enum("raw", "sync", name="pawprint_x_tile_statuses")
+    statuses = db.Enum("raw", "ready", "sync", name="pawprint_x_tile_statuses")
 
     id = db.Column(db.Integer, db.Sequence('pxt_id_seq'), primary_key=True)
 
