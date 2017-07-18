@@ -72,6 +72,9 @@ class Tile(db.Model):
         self._npy_filename = os.path.splitext(self._raw_filename)[0] + ".npy"
         np.save(self.npy_file_path, arr)
 
+    def load_npy_file(self):
+        return np.load(self.npy_file_path)
+
 
 class PawprintStack(db.Model):
     """Represent a VVV pawprint stack in some band and some epoch.
@@ -134,6 +137,9 @@ class PawprintStack(db.Model):
             os.makedirs(file_dir)
         np.save(self.npy_file_path, arr)
 
+    def load_npy_file(self):
+        return np.load(self.npy_file_path)
+
 
 class PawprintStackXTile(db.Model):
     """Relation between a pawprint-stack and a tile. Because the virca, overlap
@@ -159,8 +165,27 @@ class PawprintStackXTile(db.Model):
     tile_id = db.Column(db.Integer, db.ForeignKey('Tile.id'), nullable=False)
     tile = db.relationship("Tile", backref=db.backref("pxts"))
 
+    _npy_filename = db.Column("npy_filename", db.Text)
+
     status = db.Column(statuses, default="raw")
 
     def __repr__(self):
         string = "<PXT '{}: {}'>"
         return string.format(self.tile.name, self.pawprint_stack.name)
+
+    @property
+    def npy_file_path(self):
+        if self._npy_filename:
+            return os.path.join(
+                settings.MATCH_DIR, self.tile.name, self._npy_filename)
+
+    def store_npy_file(self, arr):
+        self._npy_filename = "{}_{}.npy".format(
+            self.tile.name, self.pawprint_stack.name)
+        file_dir = os.path.dirname(self.npy_file_path)
+        if not os.path.isdir(file_dir):
+            os.makedirs(file_dir)
+        np.save(self.npy_file_path, arr)
+
+    def load_npy_file(self):
+        return np.load(self.npy_file_path)
