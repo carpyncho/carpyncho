@@ -51,3 +51,6 @@ class Pipeline(PipelineSetup):
             os.makedirs(settings.RAW_PAWPRINTS_DIR)
         if not os.path.exists(settings.NPY_PAWPRINTS_DIR):
             os.makedirs(settings.NPY_PAWPRINTS_DIR)
+
+        if not os.path.exists(settings.MATCHS_DIR):
+            os.makedirs(settings.MATCHS_DIR)

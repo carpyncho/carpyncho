@@ -167,6 +167,8 @@ class PawprintStackXTile(db.Model):
 
     _npy_filename = db.Column("npy_filename", db.Text)
 
+    matched_number = db.Column(db.Integer, nullable=True)
+
     status = db.Column(statuses, default="raw")
 
     def __repr__(self):
@@ -177,7 +179,7 @@ class PawprintStackXTile(db.Model):
     def npy_file_path(self):
         if self._npy_filename:
             return os.path.join(
-                settings.MATCH_DIR, self.tile.name, self._npy_filename)
+                settings.MATCHS_DIR, self.tile.name, self._npy_filename)
 
     def store_npy_file(self, arr):
         self._npy_filename = "{}_{}.npy".format(

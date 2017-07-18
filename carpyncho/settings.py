@@ -107,4 +107,6 @@ NPY_TILES_DIR = os.path.join(DATA_PATH, "npy_tiles")
 RAW_PAWPRINTS_DIR = os.path.join(DATA_PATH, "raw_pawprints")
 NPY_PAWPRINTS_DIR = os.path.join(DATA_PATH, "npy_pawprints")
 
+MATCHS_DIR = os.path.join(DATA_PATH, "matchs")
+
 DEBUG = DEBUG_PROCESS

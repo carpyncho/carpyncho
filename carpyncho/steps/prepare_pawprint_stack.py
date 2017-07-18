@@ -133,15 +133,15 @@ class PreparePawprintStack(run.Step):
 
         # create a new dtype to store the ra and dec as degrees
         dtype = copy.deepcopy(dtypes)
-        dtype["names"].insert(0, "id")
         dtype["names"].insert(0, "dec_deg")
         dtype["names"].insert(0, "ra_deg")
         dtype["names"].insert(0, "hjd")
+        dtype["names"].insert(0, "id")
 
+        dtype["formats"].insert(0, float)
+        dtype["formats"].insert(0, float)
+        dtype["formats"].insert(0, float)
         dtype["formats"].insert(0, "|S20")
-        dtype["formats"].insert(0, float)
-        dtype["formats"].insert(0, float)
-        dtype["formats"].insert(0, float)
 
         # create an empty array and copy the values
         data = np.empty(len(odata), dtype=dtype)

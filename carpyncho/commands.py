@@ -173,7 +173,7 @@ class LSSync(cli.BaseCommand):
     def handle(self, status):
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        table.header(("Tile", "Pawprint", "Status"))
+        table.header(("Tile", "Pawprint", "Matched N.", "Status"))
 
         with db.session_scope() as session:
             query = session.query(PawprintStackXTile)
@@ -181,5 +181,7 @@ class LSSync(cli.BaseCommand):
                 query = query.filter(PawprintStackXTile.status.in_(status))
             for pxt in query:
                 table.add_row([pxt.tile.name,
-                               pxt.pawprint_stack.name, pxt.status])
+                               pxt.pawprint_stack.name,
+                               pxt.matched_number,
+                               pxt.status])
             print(table.draw())

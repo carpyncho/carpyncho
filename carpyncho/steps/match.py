@@ -7,6 +7,8 @@
 
 from corral import run
 
+import numpy as np
+
 from astropysics import coords
 
 from ..models import PawprintStackXTile
@@ -56,6 +58,18 @@ class Match(run.Step):
         tile_data = pxt.tile.load_npy_file()
         pwp_data = pxt.pawprint_stack.load_npy_file()
 
+        # create dtype
+        dtype = {
+            "names": (
+                ["tile_name", "tile_id"] +
+                ["bm_src_{}".format(n) for n in tile_data.dtype.names] +
+                ["pwp_stack_id", "pwp_stack_band"] +
+                ["pwp_stack_src_{}".format(n) for n in pwp_data.dtype.names]),
+            "formats": (
+                ["|S10", int] + [e[-1] for e in tile_data.dtype.descr] +
+                [int, "|S10"] + [e[-1] for e in pwp_data.dtype.descr])
+        }
+
         pwp_ra, pwp_dec = pwp_data["ra_deg"], pwp_data["dec_deg"]
         tile_ra, tile_dec = tile_data["ra_k"], tile_data["dec_k"]
 
@@ -70,3 +84,11 @@ class Match(run.Step):
             pxt=pxt, tile_data=tile_data, pwp_data=pwp_data,
             nearestind_pwp=nearestind_pwp, match_pwp=match_pwp,
             nearestind_ms=nearestind_ms, match_ms=match_ms)
+
+        arr = np.fromiter(matchs, dtype=dtype)
+
+        pxt.matched_number = len(arr)
+        pxt.store_npy_file(arr)
+        pxt.status = "matched"
+
+        yield pxt
