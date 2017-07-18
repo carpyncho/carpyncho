@@ -102,8 +102,7 @@ class PawprintStack(db.Model):
     status = db.Column(statuses, default="raw")
 
     def __repr__(self):
-        return "<PawprintStack '{}[{}]'>".format(
-            repr(self.name), repr(self.band))
+        return "<PawprintStack '{}'>".format(repr(self.name))
 
     @property
     def raw_file_path(self):
@@ -148,7 +147,7 @@ class PawprintStackXTile(db.Model):
                             name='_pawprint_tile_uc'),
     )
 
-    statuses = db.Enum("raw", "ready", "sync", name="pawprint_x_tile_statuses")
+    statuses = db.Enum("raw", "ready", "matched", name="pxt_statuses")
 
     id = db.Column(db.Integer, db.Sequence('pxt_id_seq'), primary_key=True)
 
@@ -164,4 +163,4 @@ class PawprintStackXTile(db.Model):
 
     def __repr__(self):
         string = "<PXT '{}: {}'>"
-        return string.format(self.tile.name, self.pawprint.name)
+        return string.format(self.tile.name, self.pawprint_stack.name)
