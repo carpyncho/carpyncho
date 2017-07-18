@@ -17,6 +17,10 @@ from corral import run
 
 from astropy.io import fits
 
+from PyAstronomy import pyasl
+
+from six.moves import zip, range
+
 from .. import bin
 from ..lib.context_managers import cd
 from ..models import PawprintStack
@@ -106,9 +110,9 @@ class PreparePawprintStack(run.Step):
 
         # read ascii table
         odata = np.genfromtxt(asciipath, PAWPRINT_DTYPE)
-        return odata
+        return odata, len(odata)
 
-    def add_columns(self, odata, dtypes):
+    def add_columns(self, odata, size, pwp_id, mjd, dtypes):
         """Add ra_deg and dec_deg columns to existing recarray
 
         """
@@ -122,38 +126,63 @@ class PreparePawprintStack(run.Step):
                                             odata['dec_m'] / 60.0 +
                                             odata['dec_s'] / 3600.0)
 
+        # calculate the hjds
+        hjds = np.fromiter(
+            (pyasl.helio_jd(mjd, ra, dec) for ra, dec in zip(radeg, decdeg)),
+            dtype=float)
+
+        # create ids
+        ids = np.fromiter(
+            ("pwpstk_{}_{}".format(pwp_id, idx + 1) for idx in range(size)),
+            dtype="|S20")
+
         # create a new dtype to store the ra and dec as degrees
         dtype = copy.deepcopy(dtypes)
+        dtype["names"].insert(0, "id")
         dtype["names"].insert(0, "dec_deg")
         dtype["names"].insert(0, "ra_deg")
+        dtype["names"].insert(0, "hjd")
+
+        dtype["formats"].insert(0, "|S20")
+        dtype["formats"].insert(0, float)
         dtype["formats"].insert(0, float)
         dtype["formats"].insert(0, float)
 
         # create an empty array and copy the values
         data = np.empty(len(odata), dtype=dtype)
         for name in data.dtype.names:
-            if name == "ra_deg":
+            if name == "id":
+                data[name] = ids
+            elif name == "ra_deg":
                 data[name] = radeg
             elif name == "dec_deg":
                 data[name] = decdeg
+            elif name == "hjd":
+                data[name] = hjds
             else:
                 data[name] = odata[name]
         return data
 
     def to_array(self, pwp_stk):
-        original_array = self.load_fit(pwp_stk.raw_file_path)
-        arr = self.add_columns(original_array, PAWPRINT_DTYPE)
-        return arr
+        original_array, size = self.load_fit(pwp_stk.raw_file_path)
+        arr = self.add_columns(
+            odata=original_array, size=size, pwp_id=pwp_stk.id,
+            mjd=pwp_stk.mjd, dtypes=PAWPRINT_DTYPE)
+        return arr, size
 
     # =========================================================================
     # STEP FUNCTIONS
     # =========================================================================
 
     def process(self, pwp):
+
         with fits.open(pwp.raw_file_path) as hdulist:
             pwp.band, pwp.mjd = self.extract_headers(hdulist)
 
-        arr = self.to_array(pwp)
+        arr, size = self.to_array(pwp)
+
+        pwp.size = size
         pwp.store_npy_file(arr)
+        pwp.status = "ready"
 
         yield pwp
