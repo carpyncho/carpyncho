@@ -30,11 +30,6 @@ from ..models import PawprintStack
 # CONSTANTS
 # =============================================================================
 
-SOURCE_DTYPE = {
-    "names": ['ra_h', 'ra_m', 'ra_s', 'dec_d', 'dec_m', 'dec_s'],
-    "formats": [int, int, float, int, int, float]
-}
-
 PAWPRINT_DTYPE = {
     "names": [
         'ra_h', 'ra_m', 'ra_s', 'dec_d', 'dec_m', 'dec_s', 'x', 'y',
@@ -113,7 +108,7 @@ class PreparePawprintStack(run.Step):
         return odata, len(odata)
 
     def add_columns(self, odata, size, pwp_id, mjd, dtypes):
-        """Add ra_deg and dec_deg columns to existing recarray
+        """Add id, hjds, ra_deg and dec_deg columns to existing recarray
 
         """
 
