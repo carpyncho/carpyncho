@@ -83,7 +83,7 @@ class ReadTile(run.Step):
 
         tile.store_npy_file(arr)
         tile.size = size
-        tile.status = "ready-to-sync"
+        tile.status = "ready-to-tag"
 
         self.save(tile)
         self.session.commit()

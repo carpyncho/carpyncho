@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from .. import bin
+from ..lib import matcher
 from ..models import Tile
 
 
@@ -47,6 +48,13 @@ class OGLE3TagTile(run.Step):
                     break
         self.df = pd.read_table(
             self.ogle_3_data_path, skiprows=7, names=self.columns)
+        self.df["cls"] = self.df["Type"] + "-" + self.df["Subtype"]
 
     def process(self, tile):
-        import ipdb; ipdb.set_trace()
+        arr = tile.load_npy_file()
+        tile_ra, tile_dec = arr["ra_k"], arr["dec_k"]
+        ogle_ra, ogle_dec = self.df.RA.values, self.df.DECL.values
+
+        matchs = matcher.matchs(tile_ra, ogle_ra, tile_dec, ogle_dec)
+        for tile_idx, ogle_idx in matchs:
+            import ipdb; ipdb.set_trace()
