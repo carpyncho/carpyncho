@@ -19,6 +19,7 @@ COMMANDS = "\n".join([
         cd {};
         gfortran vvv_flx2mag.f -o vvv_flx2mag -L/sw/lib -Lcfitsio -lcfitsio -lm;
         gfortran tff.f -o tff;
+        bzip2 -dk ogle3.txt.bz2;
         cd - > /dev/null;
 
     """.format(PATH).splitlines()
