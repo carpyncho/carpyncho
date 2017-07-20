@@ -21,6 +21,7 @@ import logging
 import os
 
 import numpy
+import pandas
 
 from corral import util
 
@@ -75,7 +76,8 @@ ALERTS = []
 
 # This values are autoimported when you open the shell
 SHELL_LOCALS = {
-    "np": numpy
+    "np": numpy,
+    "pd": pandas
 }
 
 
