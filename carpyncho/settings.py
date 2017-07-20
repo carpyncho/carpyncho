@@ -60,7 +60,10 @@ LOADER = "carpyncho.load.Loader"
 # Pipeline processor steps
 STEPS = [
     "carpyncho.steps.read_tile.ReadTile",
+    "carpyncho.steps.tag_tile.OGLE3TagTile",
+
     "carpyncho.steps.read_pawprint_stack.ReadPawprintStack",
+
     "carpyncho.steps.prepare_for_match.PrepareForMatch",
     "carpyncho.steps.match.Match",
 ]
