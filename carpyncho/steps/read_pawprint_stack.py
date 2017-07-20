@@ -59,9 +59,10 @@ vvv_flx2mag = sh.Command(bin.get("vvv_flx2mag"))
 # STEPS
 # =============================================================================
 
-class PreparePawprintStack(run.Step):
+class ReadPawprintStack(run.Step):
     """Convert the pawprint into a numpy array
-    ans also set the mjd and band metadata
+    ans also set the mjd and band metadata. This makes the pawprint-stack ready
+    to be matched again their tiles.
 
     """
 
@@ -178,6 +179,6 @@ class PreparePawprintStack(run.Step):
 
         pwp.size = size
         pwp.store_npy_file(arr)
-        pwp.status = "ready"
+        pwp.status = "ready-to-match"
 
         yield pwp

@@ -31,7 +31,7 @@ class Match(run.Step):
     """
 
     model = PawprintStackXTile
-    conditions = [model.status == "ready"]
+    conditions = [model.status == "ready-to-match"]
     groups = ["match"]
     production_procno = 1
 

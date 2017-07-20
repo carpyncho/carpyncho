@@ -33,8 +33,8 @@ USECOLS = [0, 1, 2, 3, 4, 5]
 # STEP
 # =============================================================================
 
-class PrepareTile(run.Step):
-    """Convert the tile into a numpy array to be matched
+class ReadTile(run.Step):
+    """Convert the tile into a numpy array to be tagged and matched
     again their pawprints
 
     """
@@ -83,7 +83,7 @@ class PrepareTile(run.Step):
 
         tile.store_npy_file(arr)
         tile.size = size
-        tile.status = "ready"
+        tile.status = "ready-to-sync"
 
         self.save(tile)
         self.session.commit()

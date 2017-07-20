@@ -15,19 +15,19 @@ from ..models import PawprintStackXTile
 # =============================================================================
 
 class PrepareForMatch(run.Step):
-    """If the status of tile and a linked pawprint-stack are ready
-    set the link as ready for match
+    """If the status of tile and a linked pawprint-stack are ready-match
+    set the link as ready-to-match
 
     """
 
     model = PawprintStackXTile
     conditions = [
         model.status == "raw",
-        model.tile.has(status="ready"),
-        model.pawprint_stack.has(status="ready")]
+        model.tile.has(status="ready-to-match"),
+        model.pawprint_stack.has(status="ready-to-match")]
     groups = ["preprocess"]
     production_procno = 1
 
     def process(self, pxt):
-        pxt.status = "ready"
+        pxt.status = "ready-to-match"
         yield pxt
