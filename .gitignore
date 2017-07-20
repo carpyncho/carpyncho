@@ -107,3 +107,4 @@ carpyncho/bin/vvv_flx2mag
 carpyncho/bin/tff
 carpyncho/bin/ogle3.txt
 example_data/
+carpyncho/lib/*.pyc
