@@ -52,7 +52,7 @@ PAWPRINT_DTYPE = {
 # COMMANDS
 # =============================================================================
 
-vvv_flx2mag = sh.Command(bin.get("vvv_flx2mag"))
+
 
 
 # =============================================================================
@@ -75,6 +75,7 @@ class ReadPawprintStack(run.Step):
     # =========================================================================
 
     def setup(self):
+        self.vvv_flx2mag = sh.Command(bin.get("vvv_flx2mag"))
         self.temp_directory = tempfile.mkdtemp(suffix="_carpyncho_ppstk")
 
     def teardown(self, *args, **kwargs):
@@ -102,7 +103,7 @@ class ReadPawprintStack(run.Step):
 
         # create the ascii table
         with cd(to_cd):
-            vvv_flx2mag(basename, asciipath)
+            self.vvv_flx2mag(basename, asciipath)
 
         # read ascii table
         odata = np.genfromtxt(asciipath, PAWPRINT_DTYPE)

@@ -1,20 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# =============================================================================
-# DOC
-# =============================================================================
-
-__doc__ = """Binary folder"""
-
-
-# =============================================================================
-# IMPORTS
-# =============================================================================
-
 import os
 
-from . import _build
+from corral import core
+
+from . import vvv_flx2mag, ogle3
+
 
 # =============================================================================
 # CONSTANTS
@@ -27,21 +19,9 @@ PATH = os.path.abspath(os.path.dirname(__file__))
 # FUNCTIONS
 # =============================================================================
 
-def get(fname):
-    """Retrieve a full path to resourse or raises an IOError"""
-    path = os.path.join(PATH, fname)
-    if os.path.exists(path) and not fname.startswith("_"):
-        return path
-    raise IOError("Resource '{}' not exists".format(fname))
-
-
 def build():
-    _build.build()
+    core.logger.info("Compiling vvv_flx2mag...")
+    vvv_flx2mag.build()
 
-
-# =============================================================================
-# MAIN
-# =============================================================================
-
-if __name__ == "__main__":
-    print(__doc__)
+    core.logger.info("Extracting OGLE-3 Dataset...")
+    ogle3.build()
