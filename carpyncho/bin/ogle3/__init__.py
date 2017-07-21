@@ -56,4 +56,5 @@ def build():
 
 
 def load():
-    pass
+    path = os.path.join(PATH, "ogleIII.pkl")
+    return pd.read_pickle(path)
