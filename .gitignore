@@ -105,5 +105,6 @@ _input_data/
 carpyncho-dev.db
 carpyncho/bin/vvv_flx2mag/vvv_flx2mag
 carpyncho/bin/ogle3/ogleIII.pkl
+carpyncho/bin/ogle3/ogleIII_all.csv
 example_data/
 carpyncho/lib/*.pyc

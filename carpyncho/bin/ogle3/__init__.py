@@ -39,6 +39,7 @@ def build():
         odf['dec_deg'] = pd.Series(coords.dec.deg, index=odf.index)
         odf["galactic_l"] = pd.Series(coords.galactic.l, index=odf.index)
         odf["galactic_b"] = pd.Series(coords.galactic.b, index=odf.index)
+        odf["cls"] = odf["Type"] + "-" + odf["Subtype"]
         return odf
 
     def preprocess():

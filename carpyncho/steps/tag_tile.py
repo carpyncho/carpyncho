@@ -40,15 +40,7 @@ class OGLE3TagTile(run.Step):
     production_procno = 1
 
     def setup(self):
-        self.ogle_3_data_path = bin.get("ogle3.txt")
-        with open(self.ogle_3_data_path) as fp:
-            for idx, line in enumerate(fp):
-                if idx == 6:
-                    self.columns = line.split()[1:]
-                    break
-        self.df = pd.read_table(
-            self.ogle_3_data_path, skiprows=7, names=self.columns)
-        self.df["cls"] = self.df["Type"] + "-" + self.df["Subtype"]
+        self.df = bin.ogle3.load()
 
     def process(self, tile):
         arr = tile.load_npy_file()

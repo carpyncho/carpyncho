@@ -49,13 +49,6 @@ PAWPRINT_DTYPE = {
 
 
 # =============================================================================
-# COMMANDS
-# =============================================================================
-
-
-
-
-# =============================================================================
 # STEPS
 # =============================================================================
 
@@ -75,7 +68,7 @@ class ReadPawprintStack(run.Step):
     # =========================================================================
 
     def setup(self):
-        self.vvv_flx2mag = sh.Command(bin.get("vvv_flx2mag"))
+        self.vvv_flx2mag = bin.vvv_flx2mag.execute
         self.temp_directory = tempfile.mkdtemp(suffix="_carpyncho_ppstk")
 
     def teardown(self, *args, **kwargs):
