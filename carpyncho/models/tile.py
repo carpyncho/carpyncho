@@ -48,6 +48,8 @@ class Tile(db.Model):
     size = db.Column(db.Integer, nullable=True)
     status = db.Column(statuses, default="raw")
 
+    ogle3_tagged_number = db.Column(db.Integer, nullable=True)
+
     def __repr__(self):
         return "<Tile '{}'>".format(self.name)
 

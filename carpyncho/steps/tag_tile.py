@@ -86,5 +86,6 @@ class OGLE3TagTile(run.Step):
             tile_data["ogle3_type"][tile_idxs] = self.ogle_cls[ogle_idxs]
 
         tile.store_npy_file(tile_data)
+        tile.ogle3_tagged_number = len(tile_idxs)
         tile.status = "ready-to-match"
         yield tile
