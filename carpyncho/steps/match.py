@@ -39,7 +39,6 @@ class Match(run.Step):
                 [ms[n] for n in tile_data.dtype.names] +
                 [pxt.pawprint_stack_id, pxt.pawprint_stack.band] +
                 [pwp_src[n] for n in pwp_data.dtype.names])
-            import ipdb; ipdb.set_trace()
             yield row
 
     def process(self, pxt):

@@ -35,18 +35,23 @@ class OGLE3TagTile(run.Step):
     """
 
     model = Tile
-    conditions = [model.status == "ready-to-tag"]
+    conditions = [model.status == "ready-to-tag", model.name=="b220"]
     groups = ["preprocess"]
     production_procno = 1
 
     def setup(self):
-        self.df = bin.ogle3.load()
+        df = bin.ogle3.load()
+        self.ogle_ra = df.ra_deg.values
+        self.ogle_dec = df.dec_deg.values
+        self.df = df[["ra_deg", "dec_deg"]]
 
     def process(self, tile):
         arr = tile.load_npy_file()
         tile_ra, tile_dec = arr["ra_k"], arr["dec_k"]
-        ogle_ra, ogle_dec = self.df.RA.values, self.df.DECL.values
+        tdf = pd.DataFrame(arr)[["ra_k", "dec_k"]]
+        import ipdb; ipdb.set_trace()
 
-        matchs = matcher.matchs(tile_ra, ogle_ra, tile_dec, ogle_dec)
+        matchs = matcher.matchs(tile_ra, self.ogle_ra, tile_dec, self.ogle_dec)
         for tile_idx, ogle_idx in matchs:
-            import ipdb; ipdb.set_trace()
+            print tile_idx, ogle_idx
+        a=1

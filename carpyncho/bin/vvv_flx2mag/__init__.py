@@ -28,5 +28,5 @@ def build():
 
 
 def execute(*args, **kwargs):
-    vvv_flx2mag = sh(os.path.join(PATH, "vvv_flx2mag"))
+    vvv_flx2mag = sh.Command(os.path.join(PATH, "vvv_flx2mag"))
     return vvv_flx2mag(*args, **kwargs)
