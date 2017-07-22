@@ -35,23 +35,56 @@ class OGLE3TagTile(run.Step):
     """
 
     model = Tile
-    conditions = [model.status == "ready-to-tag", model.name=="b220"]
+    conditions = [model.status == "ready-to-tag"]
     groups = ["preprocess"]
     production_procno = 1
 
     def setup(self):
         df = bin.ogle3.load()
+        self.ogle_id = df.ID.values
+        self.ogle_cls = df.cls.values
         self.ogle_ra = df.ra_deg.values
         self.ogle_dec = df.dec_deg.values
-        self.df = df[["ra_deg", "dec_deg"]]
+
+    def add_columns(self, tile_data):
+        # create dtype
+        dtype = {
+            "names": list(tile_data.dtype.names) + ["ogle3_type", "ogle3_id"],
+            "formats": (
+                [e[-1] for e in tile_data.dtype.descr] + ["|S13", "|S25"])}
+
+        types = np.chararray(len(tile_data), itemsize=13)
+        ids = np.chararray(len(tile_data), itemsize=25)
+
+        types[:], ids[:] = "", ""
+
+        # create an empty array and copy the values
+        data = np.empty(len(tile_data), dtype=dtype)
+        for name in tile_data.dtype.names:
+            if name == "ogle3_type":
+                data[name] = types
+            if name == "ogle3_id":
+                data[name] = ids
+            else:
+                data[name] = tile_data[name]
+        return data
 
     def process(self, tile):
-        arr = tile.load_npy_file()
-        tile_ra, tile_dec = arr["ra_k"], arr["dec_k"]
-        tdf = pd.DataFrame(arr)[["ra_k", "dec_k"]]
-        import ipdb; ipdb.set_trace()
+        tile_data = tile.load_npy_file()
+        tile_data = self.add_columns(tile_data)
+
+        tile_ra, tile_dec = tile_data["ra_k"], tile_data["dec_k"]
 
         matchs = matcher.matchs(tile_ra, self.ogle_ra, tile_dec, self.ogle_dec)
+        tile_idxs, ogle_idxs = [], []
         for tile_idx, ogle_idx in matchs:
-            print tile_idx, ogle_idx
-        a=1
+            tile_idxs.append(tile_idx)
+            ogle_idxs.append(ogle_idx)
+
+        if tile_idxs:
+            tile_data["ogle3_id"][tile_idxs] = self.ogle_id[ogle_idxs]
+            tile_data["ogle3_type"][tile_idxs] = self.ogle_cls[ogle_idxs]
+
+        tile.store_npy_file(tile_data)
+        tile.status = "ready-to-match"
+        yield tile
