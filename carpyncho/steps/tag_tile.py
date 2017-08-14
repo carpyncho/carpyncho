@@ -89,3 +89,4 @@ class OGLE3TagTile(run.Step):
         tile.ogle3_tagged_number = len(tile_idxs)
         tile.status = "ready-to-match"
         yield tile
+        self.session.commit()

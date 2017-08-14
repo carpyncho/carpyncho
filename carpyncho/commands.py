@@ -184,4 +184,6 @@ class LSSync(cli.BaseCommand):
                                pxt.pawprint_stack.name,
                                pxt.matched_number,
                                pxt.status])
-            print(table.draw())
+            cnt = query.count()
+        print(table.draw())
+        print("Count: {}".format(cnt))

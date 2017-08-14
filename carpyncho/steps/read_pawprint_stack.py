@@ -176,3 +176,4 @@ class ReadPawprintStack(run.Step):
         pwp.status = "ready-to-match"
 
         yield pwp
+        self.session.commit()

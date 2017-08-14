@@ -72,3 +72,5 @@ class Match(run.Step):
         pxt.status = "matched"
 
         yield pxt
+
+        self.session.commit()
