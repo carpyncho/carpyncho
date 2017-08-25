@@ -67,6 +67,8 @@ STEPS = [
 
     "carpyncho.steps.prepare_for_match.PrepareForMatch",
     "carpyncho.steps.match.Match",
+
+    "carpyncho.steps.merge_lightcurves.MergeLightCurves",
 ]
 
 
@@ -113,5 +115,7 @@ RAW_PAWPRINTS_DIR = os.path.join(DATA_PATH, "raw_pawprints")
 NPY_PAWPRINTS_DIR = os.path.join(DATA_PATH, "npy_pawprints")
 
 MATCHS_DIR = os.path.join(DATA_PATH, "matchs")
+
+LC_DIR = os.path.join(DATA_PATH, "light_curves")
 
 DEBUG = DEBUG_PROCESS

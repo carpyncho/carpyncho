@@ -25,7 +25,7 @@ class PrepareForMatch(run.Step):
         model.status == "raw",
         model.tile.has(status="ready-to-match"),
         model.pawprint_stack.has(status="ready-to-match")]
-    groups = ["preprocess"]
+    groups = ["preprocess", "preparation"]
     production_procno = 1
 
     def process(self, pxt):

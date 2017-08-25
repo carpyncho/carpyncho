@@ -42,12 +42,10 @@ class Pipeline(PipelineSetup):
     def setup(self):
         self.default_setup()
 
-
         fh = settings.get("LOG_FILE")
         if fh:
             logging.getLogger("Corral").addHandler(fh)
             logging.getLogger('sqlalchemy.engine').addHandler(fh)
-
 
         if not os.path.exists(settings.RAW_TILES_DIR):
             os.makedirs(settings.RAW_TILES_DIR)
@@ -61,3 +59,6 @@ class Pipeline(PipelineSetup):
 
         if not os.path.exists(settings.MATCHS_DIR):
             os.makedirs(settings.MATCHS_DIR)
+
+        if not os.path.exists(settings.LC_DIR):
+            os.makedirs(settings.LC_DIR)

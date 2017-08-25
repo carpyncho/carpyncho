@@ -36,7 +36,7 @@ class OGLE3TagTile(run.Step):
 
     model = Tile
     conditions = [model.status == "ready-to-tag"]
-    groups = ["preprocess"]
+    groups = ["preprocess", "tag"]
     production_procno = 1
 
     def setup(self):

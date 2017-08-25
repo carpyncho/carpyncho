@@ -13,6 +13,8 @@ import shutil
 
 import numpy as np
 
+import pandas as pd
+
 from corral import db
 from corral.conf import settings
 
@@ -74,3 +76,63 @@ class Tile(db.Model):
 
     def load_npy_file(self):
         return np.load(self.npy_file_path)
+
+
+class LightCurves(db.Model):
+    """Stores the sources of the tile and also their observations
+    inside a pawprint. This resume are stores inside an hdf5 for
+    eficient access
+
+    """
+
+    __tablename__ = "LightCurves"
+
+    id = db.Column(db.Integer, db.Sequence('lc_id_seq'), primary_key=True)
+
+    tile_id = db.Column(
+        db.Integer, db.ForeignKey('Tile.id'), nullable=False, unique=True)
+    tile = db.relationship("Tile", backref=db.backref("lcs"))
+
+    _hdf_filename = db.Column("hdf_filename", db.Text)
+
+    def _filepath(self):
+        if not self._hdf_filename:
+            self._hdf_filename = "{}.h5".format(self.tile.name)
+        return os.path.join(settings.LC_DIR, self._hdf_filename)
+
+    @property
+    def hdf_storage(self):
+        if not hasattr(self, "_hdf"):
+            fpath = self._filepath()
+            self._hdf = pd.HDFStore(fpath)
+        return self._hdf
+
+    @property
+    def sources(self):
+        tn = "{}_sources".format(self.tile.name)
+        return self.hdf_storage["sources"]
+
+    @sources.setter
+    def sources(self, df):
+        tn = "{}_sources".format(self.tile.name)
+        self.hdf_storage.put(tn, df, format='table', data_columns=True)
+
+    @property
+    def pwpx_ids(self):
+        tn = "pwpx_ids"
+        if tn not in self.hdf_storage:
+            return set()
+        df = self.hdf_storage[tn]
+        return set(df["ids"].values)
+
+    @pwpx_ids.setter
+    def pwpx_ids(self, ids):
+        df = pd.DataFrame({"ids": list(ids)})
+        self.hdf_storage.put("pwpx_ids", df, format='table', data_columns=True)
+
+    def append_obs(self, df):
+        tn = "{}_observations".format(self.tile.name)
+        if tn not in self.hdf_storage:
+            self.hdf_storage.put(tn, df, format='table', data_columns=True)
+        else:
+            self.hdf_storage.append(tn, df, format='table')

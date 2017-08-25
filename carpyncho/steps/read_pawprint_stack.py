@@ -61,7 +61,7 @@ class ReadPawprintStack(run.Step):
 
     model = PawprintStack
     conditions = [model.status == "raw"]
-    groups = ["preprocess"]
+    groups = ["preprocess", "read"]
 
     # =========================================================================
     # STEP SETUP & TEARDOWN

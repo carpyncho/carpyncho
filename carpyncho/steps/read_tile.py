@@ -41,7 +41,7 @@ class ReadTile(run.Step):
 
     model = Tile
     conditions = [model.status == "raw"]
-    groups = ["preprocess"]
+    groups = ["preprocess", "read"]
     production_procno = 1
 
     def read_dat(self, fp):
