@@ -133,6 +133,7 @@ class LightCurves(db.Model):
     def append_obs(self, df):
         tn = "{}_observations".format(self.tile.name)
         if tn not in self.hdf_storage:
-            self.hdf_storage.put(tn, df, format='table', data_columns=True)
+            self.hdf_storage.append(
+                tn, df, format='table', data_columns=True, min_itemsize=100)
         else:
             self.hdf_storage.append(tn, df, format='table')

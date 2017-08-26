@@ -56,7 +56,6 @@ class MergeLightCurves(run.Step):
         lc = self.get_lcs(tile)
 
         sources_df = pd.DataFrame(tile.load_npy_file())
-        sources_df.set_index('id', inplace=True)
         lc.sources = sources_df
         del sources_df
 
@@ -65,18 +64,15 @@ class MergeLightCurves(run.Step):
             PawprintStackXTile.pawprint_stack_id.notin_(pwpx_ids))
         for pxt in pxts:
             obs_df = pd.DataFrame(pxt.load_npy_file())
-            obs_df['id'] = obs_df.pwp_stack_src_id
-            obs_df.set_index('id', inplace=True)
             lc.append_obs(obs_df)
             del obs_df
 
             pwpx_ids.add(pxt.id)
-
-        lc.pwpx_ids = pwpx_ids
+            lc.pwpx_ids = pwpx_ids
 
         yield lc
 
-        tile.status = "ready-to-extract-features"
+        #~ tile.status = "ready-to-extract-features"
         yield tile
 
         lc.hdf_storage.close()
