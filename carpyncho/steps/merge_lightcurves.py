@@ -31,7 +31,8 @@ class MergeLightCurves(run.Step):
 
     def generate(self):
         for tile in super(MergeLightCurves, self).generate():
-            query = self.session.query(PawprintStackXTile)
+            query = self.session.query(PawprintStackXTile).filter(
+                PawprintStackXTile.tile_id == tile.id)
             not_matched = query.filter(
                 PawprintStackXTile.status != "matched").count()
             if not not_matched:
@@ -60,8 +61,9 @@ class MergeLightCurves(run.Step):
         del sources_df
 
         pwpx_ids = lc.pwpx_ids
-        pxts = pxts.filter(
-            PawprintStackXTile.pawprint_stack_id.notin_(pwpx_ids))
+        if pwpx_ids:
+            pxts = pxts.filter(
+                PawprintStackXTile.pawprint_stack_id.notin_(pwpx_ids))
         for pxt in pxts:
             obs_df = pd.DataFrame(pxt.load_npy_file())
             lc.append_obs(obs_df)
