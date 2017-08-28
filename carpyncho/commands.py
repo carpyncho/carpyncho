@@ -36,6 +36,16 @@ from carpyncho.models import Tile, PawprintStack, PawprintStackXTile
 
 
 # =============================================================================
+# HELPER
+# =============================================================================
+
+def log2critcal():
+        import logging
+        level = logging.CRITICAL
+        logging.getLogger('sqlalchemy.engine').setLevel(level)
+
+
+# =============================================================================
 # COMMANDS
 # =============================================================================
 
@@ -120,6 +130,8 @@ class LSTile(cli.BaseCommand):
             help="Show only the given status")
 
     def handle(self, status):
+        log2critcal()
+
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
         table.header(("Tile", "Status", "OGLE-3 Tags", "Size"))
@@ -145,6 +157,8 @@ class LSPawprint(cli.BaseCommand):
             help="Show only the given status")
 
     def handle(self, status):
+        log2critcal()
+
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
         table.header(("Pawprint", "Status", "Band", "MJD", "Size"))
@@ -171,6 +185,8 @@ class LSSync(cli.BaseCommand):
             help="Show only the given status")
 
     def handle(self, status):
+        log2critcal()
+
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
         table.header(("Tile", "Pawprint", "Matched N.", "Status"))
@@ -187,3 +203,30 @@ class LSSync(cli.BaseCommand):
             cnt = query.count()
         print(table.draw())
         print("Count: {}".format(cnt))
+
+
+class EnableFeatureExtraction(cli.BaseCommand):
+    """Set the status of the given tile to 'ready-to-extract-features'"""
+
+    options = {
+        "title": "enable-fs"}
+
+    def setup(self):
+        self.parser.add_argument(
+            "tnames", action="store", nargs="+",
+            help="Name of the tile to change the status")
+
+    def handle(self, tnames):
+        log2critcal()
+        with db.session_scope() as session:
+            for tname in tnames:
+                tile = session.query(Tile).filter(Tile.name == tname).first()
+                if tile and tile.lcs and tile.status == "ready-to-match":
+                    tile.status = "ready-to-extract-features"
+                    print("[SUCESS] Tile '{}'".format(tname))
+                elif tile and tile.lcs and tile.status != "ready-to-match":
+                    print("[FAIL] Tile '{}' must be 'ready-to-match'".format(tname))
+                elif tile:
+                    print("[FAIL] Tile '{}' must has a lightcurve".format(tname))
+                else:
+                    print("[FAIL] Tile '{}' not found".format(tname))
