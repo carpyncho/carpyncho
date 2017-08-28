@@ -69,6 +69,8 @@ STEPS = [
     "carpyncho.steps.match.Match",
 
     "carpyncho.steps.merge_lightcurves.MergeLightCurves",
+
+    "carpyncho.steps.features_extractor.FeaturesExtractor"
 ]
 
 
