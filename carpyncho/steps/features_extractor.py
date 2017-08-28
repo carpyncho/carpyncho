@@ -31,4 +31,5 @@ class FeaturesExtractor(run.Step):
 
     def process(self, lc):
         sources_ids = lc.sources.id.values
-        import ipdb; ipdb.set_trace()
+        for chunk in np.array_split(sources_ids, self.split_size):
+            import ipdb; ipdb.set_trace()
