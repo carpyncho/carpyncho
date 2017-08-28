@@ -142,13 +142,35 @@ class LightCurves(db.Model):
         else:
             self.hdf_storage.append(tn, df, format='table')
 
-    def get_obs(self, ids):
-        flt = "bm_src_id in {}".format(list(ids))
+    #~ def _get_obs(self, ids, min_obs=1):
+        #~ flt = "bm_src_id in {}".format(list(ids))
+        #~ tn = "{}_observations".format(self.tile.name)
+        #~ columns = [
+            #~ "bm_src_id", "pwp_stack_src_hjd",
+            #~ "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
+        #~ obs = self.hdf_storage.select(
+            #~ tn, where=flt, columns=columns)
+        #~ import ipdb; ipdb.set_trace()
+#~
+        #~ obs = obs.groupby("bm_src_id")
+#~
+        #~ groups = np.array(obs.groups.keys())
+        #~ flt_groups = groups[obs.size().values > min_obs]
+#~
+        #~ for bm_src_id in flt_groups:
+            #~ import ipdb; ipdb.set_trace()
+            #~ data = obs.get_group(bm_src_id)
+            #~ yield bm_src_id, data
+
+    def get_obs(self, ids, min_obs=1):
         tn = "{}_observations".format(self.tile.name)
-        obs = self.hdf_storage.select(tn, where=flt).groupby("bm_src_id")
-
-        groups = tuple(obs.groups.keys())
-
-        for bm_src_id in ids:
-            data = obs.get_group(bm_src_id) if bm_src_id in groups else None
-            yield bm_src_id, data
+        columns = [
+            "bm_src_id", "pwp_stack_src_hjd",
+            "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
+        obs_table = self.hdf_storage.get_node(tn).table
+        for id in ids:
+            query = "bm_src_id == '{}'".format(id)
+            rows = obs_table.read_where(query)[columns][:]
+            if len(rows) > min_obs:
+                rows.sort(order="pwp_stack_src_hjd")
+                yield id, rows
