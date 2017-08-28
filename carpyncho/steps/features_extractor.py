@@ -27,9 +27,20 @@ class FeaturesExtractor(run.Step):
     conditions = [model.tile.has(status="ready-to-extract-features")]
     groups = ["fe"]
 
-    split_size = 350
+    chunk_size = 350
 
     def process(self, lc):
         sources_ids = lc.sources.id.values
-        for chunk in np.array_split(sources_ids, self.split_size):
-            import ipdb; ipdb.set_trace()
+
+        split_size = int(len(sources_ids) / self.chunk_size)
+        chunks = np.array_split(sources_ids, split_size)
+
+        for chunk in chunks:
+            # extraer las fuentes
+
+            # ejecutar feets
+
+            # almacenar features
+
+        # cerrar hdf
+        # commitear
