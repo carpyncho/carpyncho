@@ -122,7 +122,7 @@ class LightCurves(db.Model):
 
     @property
     def pwpx_ids(self):
-        tn = "pwpx_ids"
+        tn = "{}_pwpx_ids".format(self.tile.name)
         if tn not in self.hdf_storage:
             return set()
         df = self.hdf_storage[tn]
@@ -130,8 +130,9 @@ class LightCurves(db.Model):
 
     @pwpx_ids.setter
     def pwpx_ids(self, ids):
+        tn = "{}_pwpx_ids".format(self.tile.name)
         df = pd.DataFrame({"ids": list(ids)})
-        self.hdf_storage.put("pwpx_ids", df, format='table', data_columns=True)
+        self.hdf_storage.put(tn, df, format='table', data_columns=True)
 
     def append_obs(self, df):
         tn = "{}_observations".format(self.tile.name)
@@ -140,3 +141,14 @@ class LightCurves(db.Model):
                 tn, df, format='table', data_columns=True, min_itemsize=100)
         else:
             self.hdf_storage.append(tn, df, format='table')
+
+    def get_obs(self, ids):
+        flt = "bm_src_id in {}".format(list(ids))
+        tn = "{}_observations".format(self.tile.name)
+        obs = self.hdf_storage.select(tn, where=flt).groupby("bm_src_id")
+
+        groups = tuple(obs.groups.keys())
+
+        for bm_src_id in ids:
+            data = obs.get_group(bm_src_id) if bm_src_id in groups else None
+            yield bm_src_id, data

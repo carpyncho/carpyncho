@@ -223,7 +223,7 @@ class EnableFeatureExtraction(cli.BaseCommand):
                 tile = session.query(Tile).filter(Tile.name == tname).first()
                 if tile and tile.lcs and tile.status == "ready-to-match":
                     tile.status = "ready-to-extract-features"
-                    print("[SUCESS] Tile '{}'".format(tname))
+                    print("[SUCCESS] Tile '{}'".format(tname))
                 elif tile and tile.lcs and tile.status != "ready-to-match":
                     print("[FAIL] Tile '{}' must be 'ready-to-match'".format(tname))
                 elif tile:
