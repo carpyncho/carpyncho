@@ -27,7 +27,7 @@ class FeaturesExtractor(run.Step):
     conditions = [model.tile.has(status="ready-to-extract-features")]
     groups = ["fe"]
 
-    chunk_size = 5
+    chunk_size = 100
     observation_limit = 5
 
     def parse_obs(self, lc, chunk):
@@ -42,7 +42,7 @@ class FeaturesExtractor(run.Step):
 
             obs_number = len(time)
             if obs_number < self.observation_limit:
-                print(chunk, obs_number)
+                print(obs_number)
                 continue
 
             sort_mask = time.argsort()
