@@ -27,6 +27,8 @@ class FeaturesExtractor(run.Step):
     conditions = [model.tile.has(status="ready-to-extract-features")]
     groups = ["fe"]
 
+    split_size = 350
+
     def process(self, lc):
         sources_ids = lc.sources.id.values
         import ipdb; ipdb.set_trace()
