@@ -120,19 +120,19 @@ class LightCurves(db.Model):
         tn = "{}_sources".format(self.tile.name)
         self.hdf_storage.put(tn, df, format='table', data_columns=True)
 
-    @property
-    def pwpx_ids(self):
-        tn = "{}_pwpx_ids".format(self.tile.name)
-        if tn not in self.hdf_storage:
-            return set()
-        df = self.hdf_storage[tn]
-        return set(df["ids"].values)
+    #~ @property
+    #~ def pwpx_ids(self):
+        #~ tn = "{}_pwpx_ids".format(self.tile.name)
+        #~ if tn not in self.hdf_storage:
+            #~ return set()
+        #~ df = self.hdf_storage[tn]
+        #~ return set(df["ids"].values)
 
-    @pwpx_ids.setter
-    def pwpx_ids(self, ids):
-        tn = "{}_pwpx_ids".format(self.tile.name)
-        df = pd.DataFrame({"ids": list(ids)})
-        self.hdf_storage.put(tn, df, format='table', data_columns=True)
+    #~ @pwpx_ids.setter
+    #~ def pwpx_ids(self, ids):
+        #~ tn = "{}_pwpx_ids".format(self.tile.name)
+        #~ df = pd.DataFrame({"ids": list(ids)})
+        #~ self.hdf_storage.put(tn, df, format='table', data_columns=True)
 
     def append_obs(self, df):
         tn = "{}_observations".format(self.tile.name)

@@ -5,6 +5,8 @@
 # IMPORTS
 # =============================================================================
 
+from collections import Counter
+
 import pandas as pd
 
 from corral import run
@@ -53,24 +55,33 @@ class MergeLightCurves(run.Step):
 
     def process(self, tile_pxts):
         tile, pxts = tile_pxts
+        cnt = Counter()
 
+        # new light curve
         lc = self.get_lcs(tile)
 
+        # dataframe with all the sources of the band merge
         sources_df = pd.DataFrame(tile.load_npy_file())
-        lc.sources =sources_df
-        del sources_df
 
-        pwpx_ids = lc.pwpx_ids
-        if pwpx_ids:
-            pxts = pxts.filter(
-                PawprintStackXTile.pawprint_stack_id.notin_(pwpx_ids))
         for pxt in pxts:
+            # convert the match into a dataframe
             obs_df = pd.DataFrame(pxt.load_npy_file())
+
+            # append the data frame of observations into the
+            # existing ones
             lc.append_obs(obs_df)
 
-            pwpx_ids.add(pxt.id)
-            lc.pwpx_ids = pwpx_ids
+            # update the obs number
+            cnt.update(obs_df["bm_src_id"].values)
+
+            # remove from memory
             del obs_df
+
+        # add a new column with the number of matches of every source
+        # in the band-merge
+        sources_df["obs_number"] = sources_df.id.apply(lambda e: cnt.get(e, 0))
+        lc.sources = sources_df
+        del sources_df
 
         yield lc
         yield tile
