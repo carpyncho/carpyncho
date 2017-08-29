@@ -12,7 +12,12 @@ with db.session_scope() as session:
     for lc in session.query(LightCurves):
         if not lc.tile:
             continue
+        sources = lc.sources
+        if "obs_number" in sources.columns:
+            continue
+
         cnt = Counter()
+
 
         pxts = lc.tile.pxts
 
@@ -22,6 +27,6 @@ with db.session_scope() as session:
             obs_df = pd.DataFrame(pxt.load_npy_file())
             cnt.update(obs_df["bm_src_id"].values)
 
-        sources = lc.sources
+
         sources["obs_number"] = sources.id.apply(lambda e: cnt.get(e, 0))
         lc.sources = sources
