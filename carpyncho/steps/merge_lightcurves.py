@@ -5,8 +5,6 @@
 # IMPORTS
 # =============================================================================
 
-from collections import Counter
-
 import pandas as pd
 
 from corral import run
@@ -55,12 +53,11 @@ class MergeLightCurves(run.Step):
 
     def process(self, tile_pxts):
         tile, pxts = tile_pxts
-        cnt = Counter()
 
         lc = self.get_lcs(tile)
 
         sources_df = pd.DataFrame(tile.load_npy_file())
-        lc.sources = self.merge_df(sources_df, cnt)
+        lc.sources =sources_df
         del sources_df
 
         pwpx_ids = lc.pwpx_ids
