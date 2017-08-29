@@ -5,6 +5,8 @@
 # IMPORTS
 # =============================================================================
 
+from collections import Counter
+
 import pandas as pd
 
 from corral import run
@@ -56,9 +58,7 @@ class MergeLightCurves(run.Step):
 
         lc = self.get_lcs(tile)
 
-        sources_df = pd.DataFrame(tile.load_npy_file())
-        lc.sources = sources_df
-        del sources_df
+        cnt = Counter()
 
         pwpx_ids = lc.pwpx_ids
         if pwpx_ids:
@@ -67,14 +67,18 @@ class MergeLightCurves(run.Step):
         for pxt in pxts:
             obs_df = pd.DataFrame(pxt.load_npy_file())
             lc.append_obs(obs_df)
-            del obs_df
 
             pwpx_ids.add(pxt.id)
             lc.pwpx_ids = pwpx_ids
+            import ipdb; ipdb.set_trace()
+            del obs_df
+
+        sources_df = pd.DataFrame(tile.load_npy_file())
+        lc.sources = self.merge_df(sources_df, cnt)
+        del sources_df
 
         yield lc
 
-        #~ tile.status = "ready-to-extract-features"
         yield tile
 
         lc.hdf_storage.close()

@@ -1,13 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections import Counter
+
+import pandas as pd
+
 from corral import db
 from carpyncho.models import LightCurves
 
 with db.session_scope() as session:
     for lc in session.query(LightCurves):
-        hdf = lc.hdf_storage
-        if "pwpx_ids" in hdf:
-            tn = "{}_pwpx_ids".format(lc.tile.name)
-            hdf.get_node("pwpx_ids")._f_rename(tn)
-            print hdf.keys()
+        if not lc.tile:
+            continue
+        cnt = Counter()
+
+        pxts = lc.tile.pxts
+
+        total = len(pxts)
+        for idx, pxt in enumerate(pxts):
+            print "{} reading {} of {} pxts".format(lc, idx, total)
+            obs_df = pd.DataFrame(pxt.load_npy_file())
+            cnt.update(obs_df["bm_src_id"].values)
+
+        sources = lc.sources
+        sources["obs_number"] = sources.id.apply(lambda e: cnt.get(e, 0))
