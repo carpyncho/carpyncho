@@ -24,3 +24,4 @@ with db.session_scope() as session:
 
         sources = lc.sources
         sources["obs_number"] = sources.id.apply(lambda e: cnt.get(e, 0))
+        lc.sources = sources
