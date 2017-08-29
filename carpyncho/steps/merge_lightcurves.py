@@ -53,12 +53,15 @@ class MergeLightCurves(run.Step):
             lc = LightCurves(tile=tile)
         return lc
 
-    def process(self, generated):
-        tile, pxts = generated
+    def process(self, tile_pxts):
+        tile, pxts = tile_pxts
+        cnt = Counter()
 
         lc = self.get_lcs(tile)
 
-        cnt = Counter()
+        sources_df = pd.DataFrame(tile.load_npy_file())
+        lc.sources = self.merge_df(sources_df, cnt)
+        del sources_df
 
         pwpx_ids = lc.pwpx_ids
         if pwpx_ids:
@@ -70,15 +73,9 @@ class MergeLightCurves(run.Step):
 
             pwpx_ids.add(pxt.id)
             lc.pwpx_ids = pwpx_ids
-            import ipdb; ipdb.set_trace()
             del obs_df
 
-        sources_df = pd.DataFrame(tile.load_npy_file())
-        lc.sources = self.merge_df(sources_df, cnt)
-        del sources_df
-
         yield lc
-
         yield tile
 
         lc.hdf_storage.close()
