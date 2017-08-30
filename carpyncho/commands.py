@@ -21,6 +21,7 @@ import sys
 import os
 import shutil
 import argparse
+import json
 from pprint import pprint
 
 import sh
@@ -35,6 +36,7 @@ from corral import cli, conf, db, core
 
 from carpyncho import bin
 from carpyncho.models import Tile, PawprintStack, PawprintStackXTile, LightCurves
+from carpyncho.lib.marshmalow_schema import setup_schema
 
 
 # =============================================================================
@@ -262,16 +264,43 @@ class HDF(cli.BaseCommand):
                 print("Lightcurve for tile '{}' not found".format(tile))
 
 
-#~ class DumpDB(cli.BaseCommand):
-#~
-    #~ def handle(self):
-        #~ log2critcal()
-        #~ models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
-        #~ with db.session_scope() as session:
-            #~ from carpyncho.lib.marshmalow_schema import setup_schema
-            #~ setup_schema(db.Model, session)
-            #~ for model in models:
-                #~ schema_cls = model.__marshmallow__
-                #~ schema = schema_cls()
-                #~ import ipdb; ipdb.set_trace()
-                #~ a=1
+class DumpDB(cli.BaseCommand):
+    """Dump the database to a JSON file"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "dump_file", action="store", type=argparse.FileType(mode="w"))
+
+    def handle(self, dump_file):
+        log2critcal()
+        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
+        data = {}
+        with db.session_scope() as session:
+            setup_schema(db.Model, session)
+            for model in models:
+                model_data = []
+                schema = model.__marshmallow__()
+                for obj in session.query(model):
+                    model_data.append(schema.dump(obj).data)
+                data[model.__name__] = model_data
+        json.dump(data, dump_file, indent=2)
+
+
+class LoadDB(cli.BaseCommand):
+    """Load the database from a JSON file"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "load_file", action="store", type=argparse.FileType())
+
+    def handle(self, load_file):
+        log2critcal()
+        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
+        data = json.load(load_file)
+        with db.session_scope() as session:
+            setup_schema(db.Model, session)
+            for model in models:
+                model_data = data[model.__name__]
+                schema = model.__marshmallow__()
+                for row in model_data:
+                    import ipdb; ipdb.set_trace()
