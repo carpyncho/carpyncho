@@ -35,18 +35,9 @@ class FeaturesExtractor(run.Step):
     min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
 
     def setup(self):
-        self.fs = feets.MPFeatureSpace(data=["magnitude", "time", "error"])
-
-        # TODO DEV ONLY
-        import os
-        self.data_path = os.path.join(
-            os.path.abspath(os.path.dirname(feets.tests.__file__)), "data")
-        self.lc_path = os.path.join(self.data_path, "lc_1.3444.614.B_R.npz")
-        with np.load(self.lc_path) as npz:
-            self.lc = (
-                npz['mag'],
-                npz['time'],
-                npz['error'])
+        self.fs = feets.MPFeatureSpace(
+            data=["magnitude", "time", "error"],
+            exclude=["SlottedA_length", "StetsonK_AC"])
 
     def parse_obs(self, lc, src_ids):
         lcs = []
@@ -54,10 +45,7 @@ class FeaturesExtractor(run.Step):
             time = df.pwp_stack_src_hjd.values
             mag = df.pwp_stack_src_mag3.values
             mag_err = df.pwp_stack_src_mag_err3.values
-            data = np.vstack((mag, time, mag_err))
-            # todo
-            data = self.lc
-
+            data = (mag, time, mag_err)
             lcs.append(data)
         return lcs
 
@@ -81,7 +69,9 @@ class FeaturesExtractor(run.Step):
         chunks = self.chunk_it(sources)
 
         lc_features = None
-        for src_chunk in chunks:
+        chunks_n = len(chunks)
+        for idx, src_chunk in enumerate(chunks):
+            print("Processing chunk {} of {}".format(idx, chunks_n))
             # extraer las fuentes
             src_chunk_ids = src_chunk.id
             lcs = self.parse_obs(lc, src_chunk_ids)
@@ -95,7 +85,6 @@ class FeaturesExtractor(run.Step):
                 lc_features = df
             else:
                 lc_features = pd.concat((lc_features, df), ignore_index=True)
-                break
 
         # almacenar features
         lc.features = lc_features
