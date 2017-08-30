@@ -209,7 +209,7 @@ class EnableFeatureExtraction(cli.BaseCommand):
     """Set the status of the given tile to 'ready-to-extract-features'"""
 
     options = {
-        "title": "enable-fs"}
+        "title": "enable-fe"}
 
     def setup(self):
         self.parser.add_argument(
@@ -229,4 +229,6 @@ class EnableFeatureExtraction(cli.BaseCommand):
                 elif tile:
                     print("[FAIL] Tile '{}' must has a lightcurve".format(tname))
                 else:
-                    print("[FAIL] Tile '{}' not found".format(tname))
+                    query = session.query(Tile.name)
+                    tryes = ", ".join([e[0] for e in query])
+                    print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))

@@ -52,6 +52,8 @@ class Tile(db.Model):
 
     ogle3_tagged_number = db.Column(db.Integer, nullable=True)
 
+    ready = db.Column(db.Boolean, default=False)
+
     def __repr__(self):
         return "<Tile '{}'>".format(self.name)
 
@@ -120,19 +122,15 @@ class LightCurves(db.Model):
         tn = "{}_sources".format(self.tile.name)
         self.hdf_storage.put(tn, df, format='table', data_columns=True)
 
-    #~ @property
-    #~ def pwpx_ids(self):
-        #~ tn = "{}_pwpx_ids".format(self.tile.name)
-        #~ if tn not in self.hdf_storage:
-            #~ return set()
-        #~ df = self.hdf_storage[tn]
-        #~ return set(df["ids"].values)
+    @property
+    def features(self):
+        tn = "{}_features".format(self.tile.name)
+        return self.hdf_storage[tn]
 
-    #~ @pwpx_ids.setter
-    #~ def pwpx_ids(self, ids):
-        #~ tn = "{}_pwpx_ids".format(self.tile.name)
-        #~ df = pd.DataFrame({"ids": list(ids)})
-        #~ self.hdf_storage.put(tn, df, format='table', data_columns=True)
+    @features.setter
+    def features(self, df):
+        tn = "{}_features".format(self.tile.name)
+        self.hdf_storage.put(tn, df, format='table', data_columns=True)
 
     def append_obs(self, df):
         tn = "{}_observations".format(self.tile.name)
@@ -142,35 +140,17 @@ class LightCurves(db.Model):
         else:
             self.hdf_storage.append(tn, df, format='table')
 
-    #~ def _get_obs(self, ids, min_obs=1):
-        #~ flt = "bm_src_id in {}".format(list(ids))
-        #~ tn = "{}_observations".format(self.tile.name)
-        #~ columns = [
-            #~ "bm_src_id", "pwp_stack_src_hjd",
-            #~ "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
-        #~ obs = self.hdf_storage.select(
-            #~ tn, where=flt, columns=columns)
-        #~ import ipdb; ipdb.set_trace()
-#~
-        #~ obs = obs.groupby("bm_src_id")
-#~
-        #~ groups = np.array(obs.groups.keys())
-        #~ flt_groups = groups[obs.size().values > min_obs]
-#~
-        #~ for bm_src_id in flt_groups:
-            #~ import ipdb; ipdb.set_trace()
-            #~ data = obs.get_group(bm_src_id)
-            #~ yield bm_src_id, data
-
-    def get_obs(self, ids, min_obs=1):
+    def get_obs(self, ids):
+        flt = "bm_src_id in {}".format(list(ids))
         tn = "{}_observations".format(self.tile.name)
         columns = [
             "bm_src_id", "pwp_stack_src_hjd",
             "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
-        obs_table = self.hdf_storage.get_node(tn).table
+        obs = self.hdf_storage.select(
+            tn, where=flt, columns=columns)
+        obs = obs.groupby("bm_src_id")
+
+        groups = np.array(obs.groups.keys())
+
         for id in ids:
-            query = "bm_src_id == '{}'".format(id)
-            rows = obs_table.read_where(query)[columns][:]
-            if len(rows) > min_obs:
-                rows.sort(order="pwp_stack_src_hjd")
-                yield id, rows
+            yield id, obs.get_group(id) if id in groups else None
