@@ -100,7 +100,7 @@ class LightCurves(db.Model):
     def __repr__(self):
         return "<LightCurves of '{}'>".format(self.tile.name)
 
-    def _filepath(self):
+    def filepath(self):
         if not self._hdf_filename:
             self._hdf_filename = "{}.h5".format(self.tile.name)
         return os.path.join(settings.LC_DIR, self._hdf_filename)
@@ -108,7 +108,7 @@ class LightCurves(db.Model):
     @property
     def hdf_storage(self):
         if not hasattr(self, "_hdf"):
-            fpath = self._filepath()
+            fpath = self.filepath()
             self._hdf = pd.HDFStore(fpath)
         return self._hdf
 

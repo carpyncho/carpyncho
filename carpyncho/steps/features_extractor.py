@@ -27,7 +27,8 @@ class FeaturesExtractor(run.Step):
 
     model = LightCurves
     conditions = [
-        model.tile.has(status="ready-to-extract-features")]
+        model.tile.has(status="ready-to-extract-features"),
+        model.tile.has(ready=False)]
     groups = ["fe"]
 
     chunk_size = conf.settings.get("FE_CHUNK_SIZE", 10)
@@ -71,7 +72,7 @@ class FeaturesExtractor(run.Step):
         return chunks
 
     def merge_features(self, srcs, features, values):
-        df1 = pd.DataFrame(srcs)
+        df1 = pd.DataFrame(srcs)[["id", "ogle3_type", "obs_number"]]
         df2 = pd.DataFrame(values, columns=features)
         return pd.concat((df1, df2), axis=1)
 
@@ -101,6 +102,9 @@ class FeaturesExtractor(run.Step):
         yield lc
 
         # cerrar hdf
-        # commitear
         lc.hdf_storage.close()
+
+        # commitear
+        lc.tile.ready = True
+        yield lc.tile
         self.session.commit()

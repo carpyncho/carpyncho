@@ -23,6 +23,8 @@ import shutil
 import argparse
 from pprint import pprint
 
+import sh
+
 from texttable import Texttable
 
 from sqlalchemy.engine import url
@@ -32,7 +34,7 @@ from sqlalchemy_utils import database_exists, create_database, drop_database
 from corral import cli, conf, db, core
 
 from carpyncho import bin
-from carpyncho.models import Tile, PawprintStack, PawprintStackXTile
+from carpyncho.models import Tile, PawprintStack, PawprintStackXTile, LightCurves
 
 
 # =============================================================================
@@ -232,3 +234,29 @@ class EnableFeatureExtraction(cli.BaseCommand):
                     query = session.query(Tile.name)
                     tryes = ", ".join([e[0] for e in query])
                     print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))
+
+
+class HDF(cli.BaseCommand):
+    """List or open the hdf file of a given tile"""
+
+    def setup(self):
+        self.subcommands = {
+            "ls": sh.h5ls,
+            "view": sh.hdfview}
+        self.parser.add_argument(
+            "subcommand", action="store", choices=self.subcommands.keys(),
+            help="Subcommand to execute")
+        self.parser.add_argument(
+            "tile", action="store", help="tilename")
+
+    def handle(self, subcommand, tile):
+        log2critcal()
+        command = self.subcommands[subcommand]
+        with db.session_scope() as session:
+            lc = session.query(LightCurves).filter(
+                LightCurves.tile.has(name=tile)).first()
+            path = lc.filepath()
+            if lc:
+                print command(path)
+            else:
+                print("Lightcurve for tile '{}' not found".format(tile))
