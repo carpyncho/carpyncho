@@ -260,3 +260,18 @@ class HDF(cli.BaseCommand):
                 print command(path)
             else:
                 print("Lightcurve for tile '{}' not found".format(tile))
+
+
+#~ class DumpDB(cli.BaseCommand):
+#~
+    #~ def handle(self):
+        #~ log2critcal()
+        #~ models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
+        #~ with db.session_scope() as session:
+            #~ from carpyncho.lib.marshmalow_schema import setup_schema
+            #~ setup_schema(db.Model, session)
+            #~ for model in models:
+                #~ schema_cls = model.__marshmallow__
+                #~ schema = schema_cls()
+                #~ import ipdb; ipdb.set_trace()
+                #~ a=1
