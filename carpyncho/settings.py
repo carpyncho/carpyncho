@@ -121,3 +121,10 @@ MATCHS_DIR = os.path.join(DATA_PATH, "matchs")
 LC_DIR = os.path.join(DATA_PATH, "light_curves")
 
 DEBUG = DEBUG_PROCESS
+
+# =============================================================================
+# WARNINGS DISABLE
+# =============================================================================
+
+import warnings
+warnings.simplefilter("ignore", FutureWarning)
