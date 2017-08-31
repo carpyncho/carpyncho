@@ -35,7 +35,7 @@ from sqlalchemy_utils import database_exists, create_database, drop_database
 from corral import cli, conf, db, core
 
 from carpyncho import bin
-from carpyncho.models import Tile, PawprintStack, PawprintStackXTile
+from carpyncho.models import Tile, PawprintStack, PawprintStackXTile, LightCurves
 
 
 # =============================================================================
@@ -242,8 +242,8 @@ class HDF(cli.BaseCommand):
 
     def setup(self):
         self.subcommands = {
-            "ls": sh.h5ls,
-            "view": sh.hdfview}
+            "ls": "h5ls",
+            "view": "hdfview"}
         self.parser.add_argument(
             "subcommand", action="store", choices=self.subcommands.keys(),
             help="Subcommand to execute")
@@ -252,7 +252,7 @@ class HDF(cli.BaseCommand):
 
     def handle(self, subcommand, tile):
         log2critcal()
-        command = self.subcommands[subcommand]
+        command = sh.Command(self.subcommands[subcommand])
         with db.session_scope() as session:
             lc = session.query(LightCurves).filter(
                 LightCurves.tile.has(name=tile)).first()
@@ -271,6 +271,7 @@ class DumpDB(cli.BaseCommand):
             "dump_file", action="store", type=argparse.FileType(mode="w"))
 
     def handle(self, dump_file):
+        raise NotImplementedError()
         log2critcal()
         models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
         data = {}
@@ -293,6 +294,7 @@ class LoadDB(cli.BaseCommand):
             "load_file", action="store", type=argparse.FileType())
 
     def handle(self, load_file):
+        raise NotImplementedError()
         log2critcal()
         models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
         data = json.load(load_file)
