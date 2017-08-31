@@ -23,6 +23,8 @@ import os
 import numpy
 import pandas
 
+import colored_traceback.auto  # noqa
+
 from corral import util
 
 
