@@ -21,7 +21,10 @@ import sys
 import os
 import shutil
 import argparse
+import json
 from pprint import pprint
+
+import sh
 
 from texttable import Texttable
 
@@ -232,3 +235,71 @@ class EnableFeatureExtraction(cli.BaseCommand):
                     query = session.query(Tile.name)
                     tryes = ", ".join([e[0] for e in query])
                     print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))
+
+
+class HDF(cli.BaseCommand):
+    """List or open the hdf file of a given tile"""
+
+    def setup(self):
+        self.subcommands = {
+            "ls": sh.h5ls,
+            "view": sh.hdfview}
+        self.parser.add_argument(
+            "subcommand", action="store", choices=self.subcommands.keys(),
+            help="Subcommand to execute")
+        self.parser.add_argument(
+            "tile", action="store", help="tilename")
+
+    def handle(self, subcommand, tile):
+        log2critcal()
+        command = self.subcommands[subcommand]
+        with db.session_scope() as session:
+            lc = session.query(LightCurves).filter(
+                LightCurves.tile.has(name=tile)).first()
+            path = lc.filepath()
+            if lc:
+                print command(path)
+            else:
+                print("Lightcurve for tile '{}' not found".format(tile))
+
+
+class DumpDB(cli.BaseCommand):
+    """Dump the database to a JSON file"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "dump_file", action="store", type=argparse.FileType(mode="w"))
+
+    def handle(self, dump_file):
+        log2critcal()
+        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
+        data = {}
+        with db.session_scope() as session:
+            setup_schema(db.Model, session)
+            for model in models:
+                model_data = []
+                schema = model.__marshmallow__()
+                for obj in session.query(model):
+                    model_data.append(schema.dump(obj).data)
+                data[model.__name__] = model_data
+        json.dump(data, dump_file, indent=2)
+
+
+class LoadDB(cli.BaseCommand):
+    """Load the database from a JSON file"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "load_file", action="store", type=argparse.FileType())
+
+    def handle(self, load_file):
+        log2critcal()
+        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
+        data = json.load(load_file)
+        with db.session_scope() as session:
+            setup_schema(db.Model, session)
+            for model in models:
+                model_data = data[model.__name__]
+                schema = model.__marshmallow__()
+                for row in model_data:
+                    import ipdb; ipdb.set_trace()
