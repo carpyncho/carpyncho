@@ -137,11 +137,13 @@ class LSTile(cli.BaseCommand):
 
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        table.header(("Tile", "Status", "OGLE-3 Tags", "Size"))
+        table.header(("Tile", "Status", "OGLE-3 Tags", "Size", "Ready"))
         cnt = 0
         with db.session_scope() as session:
             query = session.query(
-                Tile.name, Tile.status, Tile.ogle3_tagged_number, Tile.size)
+                Tile.name, Tile.status,
+                Tile.ogle3_tagged_number, Tile.size,
+                Tile.ready)
             if status:
                 query = query.filter(Tile.status.in_(status))
             map(table.add_row, query)
