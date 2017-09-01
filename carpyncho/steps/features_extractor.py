@@ -35,6 +35,8 @@ class FeaturesExtractor(run.Step):
     min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
 
     def setup(self):
+        print("chunk_size:", self.chunk_size)
+        print("min_observation:", self.min_observation)
         self.fs = feets.MPFeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
