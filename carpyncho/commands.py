@@ -248,17 +248,31 @@ class HDF(cli.BaseCommand):
             path += "/" + sbpath
         print sh.h5ls(path)
 
-    def view(self, lc, sbpath):
-        path = lc.filepath()
+    def hdfview(self, lc, sbpath):
         if sbpath:
-            import ipdb; ipdb.set_trace()
+            self.parser.error("view do not support subpath")
+        path = lc.filepath()
         print sh.hdfview(path)
+
+    def reset_features(self, lc, sbpath):
+        if sbpath:
+            self.parser.error("view do not support subpath")
+
+        storage = lc.hdf_storage
+        if not lc.tile.ready and tn in storage:
+            tn = "{}_features".format(lc.tile.name)
+            table = storage.remove(tn)
+        else:
+            self.parser.error("Tile can't be in ready state or features not exists")
+
+        storage.close()
+        import ipdb; ipdb.set_trace()
 
     def setup(self):
         self.subcommands = {
             "ls": self.h5ls,
             "view": self.hdfview,
-            "resetfeatures": self.reset_features}
+            "rm-features": self.reset_features}
         self.parser.add_argument(
             "subcommand", action="store", choices=self.subcommands.keys(),
             help="Subcommand to execute")

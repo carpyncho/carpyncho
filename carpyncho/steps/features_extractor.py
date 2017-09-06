@@ -60,6 +60,7 @@ class FeaturesExtractor(run.Step):
 
         features = lc.features
         if features is not None:
+            print "{} features set found. Resumming...".format(len(features))
             ready_ids = features.id.values
             flt = ~sources.id.isin(ready_ids)
             sources = sources[flt]
@@ -80,6 +81,7 @@ class FeaturesExtractor(run.Step):
         sources = self.get_sources(lc)
         chunks = self.chunk_it(sources)
 
+        stored_features = lc.features
         lc_features = None
         chunks_n = len(chunks)
         for idx, src_chunk in enumerate(chunks):
@@ -99,9 +101,25 @@ class FeaturesExtractor(run.Step):
                 lc_features = pd.concat([lc_features, df], ignore_index=True)
 
             # guardamos de ser necesario
-            if len(dfs) >= self.write_limit:
-                lc.append_features(lc_features)
+            if len(lc_features) >= self.write_limit:
+                print "Writing..."
+                if stored_features is not None:
+                    stored_features = pd.concat(
+                        [stored_features, lc_features], ignore_index=True)
+                else:
+                    stored_features = lc_features
+                lc.features = stored_features
                 lc_features = None
+
+        if lc_features is not None:
+            print "Writing..."
+            if stored_features is not None:
+                stored_features = pd.concat(
+                    [stored_features, lc_features], ignore_index=True)
+            else:
+                stored_features = lc_features
+            lc.features = stored_features
+            lc_features = None
 
         yield lc
 
