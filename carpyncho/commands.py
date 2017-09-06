@@ -259,8 +259,8 @@ class HDF(cli.BaseCommand):
             self.parser.error("view do not support subpath")
 
         storage = lc.hdf_storage
+        tn = "{}_features".format(lc.tile.name)
         if not lc.tile.ready and tn in storage:
-            tn = "{}_features".format(lc.tile.name)
             table = storage.remove(tn)
         else:
             self.parser.error("Tile can't be in ready state or features not exists")
