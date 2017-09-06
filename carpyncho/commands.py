@@ -266,7 +266,6 @@ class HDF(cli.BaseCommand):
             self.parser.error("Tile can't be in ready state or features not exists")
 
         storage.close()
-        import ipdb; ipdb.set_trace()
 
     def setup(self):
         self.subcommands = {
