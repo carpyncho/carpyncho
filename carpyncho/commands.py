@@ -242,10 +242,23 @@ class EnableFeatureExtraction(cli.BaseCommand):
 class HDF(cli.BaseCommand):
     """List or open the hdf file of a given tile"""
 
+    def h5ls(self, lc, sbpath):
+        path = lc.filepath()
+        if sbpath:
+            path += "/" + sbpath
+        print sh.h5ls(path)
+
+    def view(self, lc, sbpath):
+        path = lc.filepath()
+        if sbpath:
+            import ipdb; ipdb.set_trace()
+        print sh.hdfview(path)
+
     def setup(self):
         self.subcommands = {
-            "ls": "h5ls",
-            "view": "hdfview"}
+            "ls": self.h5ls,
+            "view": self.hdfview,
+            "resetfeatures": self.reset_features}
         self.parser.add_argument(
             "subcommand", action="store", choices=self.subcommands.keys(),
             help="Subcommand to execute")
@@ -254,7 +267,7 @@ class HDF(cli.BaseCommand):
 
     def handle(self, subcommand, tile):
         log2critcal()
-        command = sh.Command(self.subcommands[subcommand])
+        command = self.subcommands[subcommand]
         if "/" in tile:
             tile, sbpath = tile.split("/", 1)
         else:
@@ -263,11 +276,7 @@ class HDF(cli.BaseCommand):
             lc = session.query(LightCurves).filter(
                 LightCurves.tile.has(name=tile)).first()
             if lc:
-                path = lc.filepath()
-                if sbpath:
-                    path += "/" + sbpath
-                print path
-                print command(path)
+                command(lc, sbpath)
             else:
                 print("Lightcurve for tile '{}' not found".format(tile))
 

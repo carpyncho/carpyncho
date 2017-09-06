@@ -48,13 +48,22 @@ class FeaturesExtractor(run.Step):
             time = df.pwp_stack_src_hjd.values
             mag = df.pwp_stack_src_mag3.values
             mag_err = df.pwp_stack_src_mag_err3.values
-            data = (mag, time, mag_err)
+
+            sort_mask = time.argsort()
+            data = (mag[sort_mask], time[sort_mask], mag_err[sort_mask])
             lcs.append(data)
         return lcs
 
     def get_sources(self, lc):
         sources = lc.sources
         sources = sources[sources.obs_number >= self.min_observation]
+
+        features = lc.features
+        if features is not None:
+            ready_ids = features.id.values
+            flt = ~sources.id.isin(ready_ids)
+            sources = sources[flt]
+
         return sources.to_records()
 
     def chunk_it(self, sources):
@@ -66,9 +75,6 @@ class FeaturesExtractor(run.Step):
         df1 = pd.DataFrame(srcs)[["id", "ogle3_type", "obs_number"]]
         df2 = pd.DataFrame(values, columns=features)
         return pd.concat((df1, df2), axis=1)
-
-    def store(self, df):
-        import ipdb; ipdb.set_trace()
 
     def process(self, lc):
         sources = self.get_sources(lc)
@@ -84,11 +90,18 @@ class FeaturesExtractor(run.Step):
 
             # ejecutar feets
             features, values = self.fs.extract(lcs)
+            df = self.merge_features(src_chunk, features, values)
 
             # concatenar features
-            df = self.merge_features(src_chunk, features, values)
-            import ipdb; ipdb.set_trace()
+            if lc_features is None:
+                lc_features = df
+            else:
+                lc_features = pd.concat([lc_features, df], ignore_index=True)
 
+            # guardamos de ser necesario
+            if len(dfs) >= self.write_limit:
+                lc.append_features(lc_features)
+                lc_features = None
 
         yield lc
 

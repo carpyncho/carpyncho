@@ -115,7 +115,7 @@ class LightCurves(db.Model):
     @property
     def sources(self):
         tn = "{}_sources".format(self.tile.name)
-        return self.hdf_storage[tn]
+        return self.hdf_storage[tn] if tn in self.hdf_storage else None
 
     @sources.setter
     def sources(self, df):
@@ -125,12 +125,15 @@ class LightCurves(db.Model):
     @property
     def features(self):
         tn = "{}_features".format(self.tile.name)
-        return self.hdf_storage[tn]
+        return self.hdf_storage[tn] if tn in self.hdf_storage else None
 
-    @features.setter
-    def features(self, df):
+    def append_features(self):
         tn = "{}_features".format(self.tile.name)
-        self.hdf_storage.put(tn, df, format='table', data_columns=True)
+        if tn not in self.hdf_storage:
+            self.hdf_storage.append(
+                tn, df, format='table', data_columns=True, min_itemsize=100)
+        else:
+            self.hdf_storage.append(tn, df, format='table')
 
     def append_obs(self, df):
         tn = "{}_observations".format(self.tile.name)
@@ -141,8 +144,12 @@ class LightCurves(db.Model):
             self.hdf_storage.append(tn, df, format='table')
 
     def get_obs(self, ids):
-        flt = "bm_src_id in {}".format(list(ids))
         tn = "{}_observations".format(self.tile.name)
+        if tn not in self.hdf_storage:
+            for id in ids:
+                yield id, None
+
+        flt = "bm_src_id in {}".format(list(ids))
         columns = [
             "bm_src_id", "pwp_stack_src_hjd",
             "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
