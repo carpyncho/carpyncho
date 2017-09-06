@@ -33,12 +33,13 @@ class FeaturesExtractor(run.Step):
 
     chunk_size = conf.settings.get("FE_CHUNK_SIZE", 10)
     min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
-    write_limit = conf.settings.get("FE_WRITE_LIMIT", 100)
+    write_limit = conf.settings.get("FE_WRITE_LIMIT", 500)
 
     def setup(self):
         print("chunk_size:", self.chunk_size)
         print("min_observation:", self.min_observation)
-        self.fs = feets.FeatureSpace(
+        print("write_limit:", self.write_limit)
+        self.fs = feets.MPFeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
 
