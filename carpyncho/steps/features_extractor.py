@@ -83,13 +83,8 @@ class FeaturesExtractor(run.Step):
 
             # concatenar features
             df = self.merge_features(src_chunk, features, values)
-            if lc_features is None:
-                lc_features = df
-            else:
-                lc_features = pd.concat((lc_features, df), ignore_index=True)
+            lc.features_append(df)
 
-        # almacenar features
-        lc.features = lc_features
         yield lc
 
         # cerrar hdf

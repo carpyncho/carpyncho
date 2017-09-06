@@ -255,11 +255,18 @@ class HDF(cli.BaseCommand):
     def handle(self, subcommand, tile):
         log2critcal()
         command = sh.Command(self.subcommands[subcommand])
+        if "/" in tile:
+            tile, sbpath = tile.split("/", 1)
+        else:
+            tile, sbpath = tile, None
         with db.session_scope() as session:
             lc = session.query(LightCurves).filter(
                 LightCurves.tile.has(name=tile)).first()
-            path = lc.filepath()
             if lc:
+                path = lc.filepath()
+                if sbpath:
+                    path += "/" + sbpath
+                print path
                 print command(path)
             else:
                 print("Lightcurve for tile '{}' not found".format(tile))
