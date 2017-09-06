@@ -33,11 +33,12 @@ class FeaturesExtractor(run.Step):
 
     chunk_size = conf.settings.get("FE_CHUNK_SIZE", 10)
     min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
+    write_limit = conf.settings.get("FE_WRITE_LIMIT", 100)
 
     def setup(self):
         print("chunk_size:", self.chunk_size)
         print("min_observation:", self.min_observation)
-        self.fs = feets.MPFeatureSpace(
+        self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
 
@@ -66,6 +67,9 @@ class FeaturesExtractor(run.Step):
         df2 = pd.DataFrame(values, columns=features)
         return pd.concat((df1, df2), axis=1)
 
+    def store(self, df):
+        import ipdb; ipdb.set_trace()
+
     def process(self, lc):
         sources = self.get_sources(lc)
         chunks = self.chunk_it(sources)
@@ -83,7 +87,8 @@ class FeaturesExtractor(run.Step):
 
             # concatenar features
             df = self.merge_features(src_chunk, features, values)
-            lc.features_append(df)
+            import ipdb; ipdb.set_trace()
+
 
         yield lc
 
