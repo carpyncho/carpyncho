@@ -140,7 +140,7 @@ class LightCurves(db.Model):
         else:
             self.hdf_storage.append(tn, df, format='table')
 
-    def get_obs(self, ids):
+    def _get_obs(self, ids):
         tn = "{}_observations".format(self.tile.name)
         if tn not in self.hdf_storage:
             for id in ids:
@@ -158,3 +158,18 @@ class LightCurves(db.Model):
 
         for id in ids:
             yield id, obs.get_group(id) if id in groups else None
+
+    def get_obs(self, ids):
+        tn = "{}_observations".format(self.tile.name)
+        if tn not in self.hdf_storage:
+            for id in ids:
+                yield id, None
+
+        for src_id in ids:
+            flt = "bm_src_id == '{}'".format(src_id)
+            columns = [
+                "bm_src_id", "pwp_stack_src_hjd",
+                "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
+            obs = self.hdf_storage.select(
+                tn, where=flt, columns=columns)
+            yield src_id, obs if len(obs) else None
