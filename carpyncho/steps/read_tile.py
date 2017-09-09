@@ -51,7 +51,7 @@ class ReadTile(run.Step):
 
     - **P:** indicate the position of the tile on the VVV (3=bulge, 4=disc).
     - **TTT:** Are the tile number of the VVV.
-    - **0000000000:** is a sequential number of the source inside the tile.
+    - **OOOOOOOOOO:** is a sequential number of the source inside the tile.
 
     #### Example
 
