@@ -116,7 +116,7 @@ class LightCurves(db.Model):
     tile_id = db.Column(
         db.Integer, db.ForeignKey('Tile.id'), nullable=False, unique=True)
     tile = db.relationship(
-        "Tile", backref=db.backref("lcs"), lazy='joined', uselist=False)
+        "Tile", backref=db.backref("lcurves", uselist=False), lazy='joined')
 
     _src_obs_counter = db.Column("src_obs_cnt", db.PickleType, nullable=True)
 

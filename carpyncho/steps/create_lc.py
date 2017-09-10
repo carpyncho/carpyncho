@@ -43,7 +43,7 @@ class CreateLightCurves(run.Step):
                 PawprintStackXTile.tile_id == tile.id)
             not_matched = query.filter(
                 PawprintStackXTile.status != "matched").count()
-            if not not_matched:
+            if tile.lcurves is None and not not_matched:
                 yield tile, query
 
     def validate(self, generated):
