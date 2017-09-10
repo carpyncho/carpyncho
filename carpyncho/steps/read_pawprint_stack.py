@@ -122,9 +122,13 @@ class ReadPawprintStack(run.Step):
             dtype=float)
 
         # create ids
+        ps_name = "3" + str(pwp_id).zfill(7)
+        def get_id(order):
+            order = str(order).rjust(8, "0")
+            return (ps_name + order)
+
         ids = np.fromiter(
-            ("pwpstk_{}_{}".format(pwp_id, idx + 1) for idx in range(size)),
-            dtype="|S20")
+            (get_id(idx + 1) for idx in range(size)), dtype=np.int64)
 
         # create a new dtype to store the ra and dec as degrees
         dtype = copy.deepcopy(dtypes)
@@ -136,7 +140,7 @@ class ReadPawprintStack(run.Step):
         dtype["formats"].insert(0, float)
         dtype["formats"].insert(0, float)
         dtype["formats"].insert(0, float)
-        dtype["formats"].insert(0, "|S20")
+        dtype["formats"].insert(0, np.int64)
 
         # create an empty array and copy the values
         data = np.empty(len(odata), dtype=dtype)

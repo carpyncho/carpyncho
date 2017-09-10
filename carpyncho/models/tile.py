@@ -30,9 +30,30 @@ class Tile(db.Model):
       is added
     - `ready`: All the sources of the tile are stored as binary file
 
+    The sources are stored in a numpy record array wiht the orinal data
+    plut the id of every source.
+
+    ### Understanding the Sources ID:
+
+    The id are an 14 digits integer with the format `PTTTOOOOOOOOOO` where:
+
+    - **P:** indicate the position of the tile on the VVV (3=bulge, 4=disc).
+    - **TTT:** Are the tile number of the VVV.
+    - **OOOOOOOOOO:** is a sequential number of the source inside the tile.
+
+    #### Example
+
+    The id "40010000000130" (4-0001-0000000130) indicate the 130th source
+    inside the tile d001.
+
     """
 
     __tablename__ = "Tile"
+
+    ZONES = {
+        "b": "3",
+        "d": "4"
+    }
 
     statuses = db.Enum(
         "raw",

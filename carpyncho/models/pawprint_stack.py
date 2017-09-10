@@ -29,6 +29,22 @@ class PawprintStack(db.Model):
       is added
     - `ready`: All the sources of the pawprint are stored as binary file
 
+    The sources are stored in a numpy record array wiht the orinal data
+    plut the id of every source.
+
+    ### Understanding the Sources ID:
+
+    The id are an 16 digits integer with the format `3PPPPPPPOOOOOOOO` where:
+
+    - **3:** is always the number 3.
+    - **PPPPPPP:** is the id of pawprint stack inside carpyncho.
+    - **OOOOOOOO:** is a sequential number of the source inside the tile.
+
+    #### Example
+
+    The id "3000003500003708" (`3-0000035-00003708`) indicate the 3708th
+    source inside the pwprint with the id 35.
+
     """
 
     __tablename__ = "PawprintStack"

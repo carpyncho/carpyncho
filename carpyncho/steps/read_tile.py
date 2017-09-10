@@ -28,11 +28,6 @@ SOURCE_DTYPE = {
 
 USECOLS = [0, 1, 2, 3, 4, 5]
 
-ZONES = {
-    "b": "3",
-    "d": "4"
-}
-
 
 # =============================================================================
 # STEP
@@ -41,21 +36,6 @@ ZONES = {
 class ReadTile(run.Step):
     """Convert the tile into a numpy array to be tagged and matched
     again their pawprints.
-
-    The sources are stored in a numpy record array wiht the orinal data
-    plut the id of every source.
-
-    ### Understanding the Sources ID:
-
-    The id are an 14 digits integer with the format `PTTTOOOOOOOOOO` where:
-
-    - **P:** indicate the position of the tile on the VVV (3=bulge, 4=disc).
-    - **TTT:** Are the tile number of the VVV.
-    - **OOOOOOOOOO:** is a sequential number of the source inside the tile.
-
-    #### Example
-
-    The id "40010000000130" indicate the 130th source inside the tile d001.
 
     """
 
@@ -78,7 +58,7 @@ class ReadTile(run.Step):
 
         """
 
-        tile_name = ZONES[tile_name[0].lower()] + tile_name[1:]
+        tile_name = tile.ZONES[tile_name[0].lower()] + tile_name[1:]
 
         def get_id(order):
             order = str(order).rjust(10, "0")
