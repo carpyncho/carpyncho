@@ -58,7 +58,7 @@ class ReadTile(run.Step):
 
         """
 
-        tile_name = tile.ZONES[tile_name[0].lower()] + tile_name[1:]
+        tile_name = Tile.ZONES[tile_name[0].lower()] + tile_name[1:]
 
         def get_id(order):
             order = str(order).rjust(10, "0")
