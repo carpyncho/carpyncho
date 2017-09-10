@@ -39,7 +39,7 @@ class FeaturesExtractor(run.Step):
         print("chunk_size:", self.chunk_size)
         print("min_observation:", self.min_observation)
         print("write_limit:", self.write_limit)
-        self.fs = feets.MPFeatureSpace(
+        self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
 
@@ -56,17 +56,8 @@ class FeaturesExtractor(run.Step):
         return lcs
 
     def get_sources(self, lc):
-        sources = lc.sources
-        sources = sources[sources.obs_number >= self.min_observation]
+        import ipdb; ipdb.set_trace()
 
-        features = lc.features
-        if features is not None:
-            print "{} features set found. Resumming...".format(len(features))
-            ready_ids = features.id.values
-            flt = ~sources.id.isin(ready_ids)
-            sources = sources[flt]
-
-        return sources.to_records()
 
     def chunk_it(self, sources):
         split_size = int(len(sources) / self.chunk_size)

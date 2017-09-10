@@ -137,7 +137,7 @@ class LightCurves(db.Model):
         return path
 
     @property
-    def src_obs_counter(self):
+    def obs_counter(self):
         return self._src_obs_counter
 
     @property

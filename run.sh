@@ -5,4 +5,4 @@
 #~ python in_corral.py run -s PrepareForMatch;
 #~ time python in_corral.py run -s Match;
 time python in_corral.py -x run -s CreateLightCurves --sync;
-#~ python in_corral.py enable-fe b202;
+python in_corral.py enable-fe b202;

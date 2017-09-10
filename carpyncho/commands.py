@@ -226,10 +226,10 @@ class EnableFeatureExtraction(cli.BaseCommand):
         with db.session_scope() as session:
             for tname in tnames:
                 tile = session.query(Tile).filter(Tile.name == tname).first()
-                if tile and tile.lcs and tile.status == "ready-to-match":
+                if tile and tile.lcurves and tile.status == "ready-to-match":
                     tile.status = "ready-to-extract-features"
                     print("[SUCCESS] Tile '{}'".format(tname))
-                elif tile and tile.lcs and tile.status != "ready-to-match":
+                elif tile and tile.lcurves and tile.status != "ready-to-match":
                     print("[FAIL] Tile '{}' must be 'ready-to-match'".format(tname))
                 elif tile:
                     print("[FAIL] Tile '{}' must has a lightcurve".format(tname))
