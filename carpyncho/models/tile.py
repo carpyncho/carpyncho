@@ -10,6 +10,7 @@
 
 import os
 import shutil
+from collections import Counter
 
 import numpy as np
 
@@ -114,84 +115,41 @@ class LightCurves(db.Model):
 
     tile_id = db.Column(
         db.Integer, db.ForeignKey('Tile.id'), nullable=False, unique=True)
-    tile = db.relationship("Tile", backref=db.backref("lcs"), lazy='joined')
+    tile = db.relationship(
+        "Tile", backref=db.backref("lcs"), lazy='joined', uselist=False)
 
-    _lc_filename = db.Column("lc_filename", db.Text)
-    _features_filename = db.Column("features_filename", db.Text)
+    _src_obs_counter = db.Column("src_obs_cnt", db.PickleType, nullable=True)
 
     def __repr__(self):
         return "<LightCurves of '{}'>".format(self.tile.name)
 
-    def filepath(self):
-        if not self._hdf_filename:
-            self._hdf_filename = "{}.h5".format(self.tile.name)
-        return os.path.join(settings.LC_DIR, self._hdf_filename)
+    def _set_cnt(self, ids):
+        cnt = Counter(ids)
+        gen = (e for e in cnt.items())
+        dtype = [("id", np.int64), ("cnt", int)]
+        self._src_obs_counter = np.fromiter(gen, dtype=dtype)
 
     @property
-    def hdf_storage(self):
-        if not hasattr(self, "_hdf"):
-            fpath = self.filepath()
-            self._hdf = pd.HDFStore(fpath)
-        return self._hdf
+    def lc_path(self):
+        path = os.path.join(settings.LC_DIR, self.tile.name)
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
 
     @property
-    def sources(self):
-        tn = "{}_sources".format(self.tile.name)
-        return self.hdf_storage[tn] if tn in self.hdf_storage else None
-
-    @sources.setter
-    def sources(self, df):
-        tn = "{}_sources".format(self.tile.name)
-        self.hdf_storage.put(tn, df, format='table', data_columns=True)
+    def src_obs_counter(self):
+        return self._src_obs_counter
 
     @property
-    def features(self):
-        tn = "{}_features".format(self.tile.name)
-        return self.hdf_storage[tn] if tn in self.hdf_storage else None
+    def observations(self):
+        fname = "lc_obs_{}.npy".format(self.tile.name)
+        path = os.path.join(self.lc_path, fname)
+        if os.path.exists(path):
+            return np.load(path)
 
-    @features.setter
-    def features(self, df):
-        tn = "{}_features".format(self.tile.name)
-        self.hdf_storage.put(tn, df, format='table', data_columns=True)
-
-    def append_obs(self, df):
-        tn = "{}_observations".format(self.tile.name)
-        if tn not in self.hdf_storage:
-            self.hdf_storage.append(
-                tn, df, format='table', data_columns=True, min_itemsize=100)
-        else:
-            self.hdf_storage.append(tn, df, format='table')
-
-    def _get_obs(self, ids):
-        tn = "{}_observations".format(self.tile.name)
-        if tn not in self.hdf_storage:
-            for id in ids:
-                yield id, None
-
-        flt = "bm_src_id in {}".format(list(ids))
-        columns = [
-            "bm_src_id", "pwp_stack_src_hjd",
-            "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
-        obs = self.hdf_storage.select(
-            tn, where=flt, columns=columns)
-        obs = obs.groupby("bm_src_id")
-
-        groups = np.array(obs.groups.keys())
-
-        for id in ids:
-            yield id, obs.get_group(id) if id in groups else None
-
-    def get_obs(self, ids):
-        tn = "{}_observations".format(self.tile.name)
-        if tn not in self.hdf_storage:
-            for id in ids:
-                yield id, None
-
-        for src_id in ids:
-            flt = "bm_src_id == '{}'".format(src_id)
-            columns = [
-                "bm_src_id", "pwp_stack_src_hjd",
-                "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
-            obs = self.hdf_storage.select(
-                tn, where=flt, columns=columns)
-            yield src_id, obs if len(obs) else None
+    @observations.setter
+    def observations(self, arr):
+        self._set_cnt(arr["bm_src_id"])
+        fname = "lc_obs_{}.npy".format(self.tile.name)
+        path = os.path.join(self.lc_path, fname)
+        np.save(path, arr)

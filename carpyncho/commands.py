@@ -239,61 +239,6 @@ class EnableFeatureExtraction(cli.BaseCommand):
                     print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))
 
 
-class HDF(cli.BaseCommand):
-    """List or open the hdf file of a given tile"""
-
-    def h5ls(self, lc, sbpath):
-        path = lc.filepath()
-        if sbpath:
-            path += "/" + sbpath
-        print sh.h5ls(path)
-
-    def hdfview(self, lc, sbpath):
-        if sbpath:
-            self.parser.error("view do not support subpath")
-        path = lc.filepath()
-        print sh.hdfview(path)
-
-    def reset_features(self, lc, sbpath):
-        if sbpath:
-            self.parser.error("view do not support subpath")
-
-        storage = lc.hdf_storage
-        tn = "{}_features".format(lc.tile.name)
-        if not lc.tile.ready and tn in storage:
-            table = storage.remove(tn)
-        else:
-            self.parser.error("Tile can't be in ready state or features not exists")
-
-        storage.close()
-
-    def setup(self):
-        self.subcommands = {
-            "ls": self.h5ls,
-            "view": self.hdfview,
-            "rm-features": self.reset_features}
-        self.parser.add_argument(
-            "subcommand", action="store", choices=self.subcommands.keys(),
-            help="Subcommand to execute")
-        self.parser.add_argument(
-            "tile", action="store", help="tilename")
-
-    def handle(self, subcommand, tile):
-        log2critcal()
-        command = self.subcommands[subcommand]
-        if "/" in tile:
-            tile, sbpath = tile.split("/", 1)
-        else:
-            tile, sbpath = tile, None
-        with db.session_scope() as session:
-            lc = session.query(LightCurves).filter(
-                LightCurves.tile.has(name=tile)).first()
-            if lc:
-                command(lc, sbpath)
-            else:
-                print("Lightcurve for tile '{}' not found".format(tile))
-
-
 class DumpDB(cli.BaseCommand):
     """Dump the database to a JSON file"""
 

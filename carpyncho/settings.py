@@ -70,7 +70,7 @@ STEPS = [
     "carpyncho.steps.prepare_for_match.PrepareForMatch",
     "carpyncho.steps.match.Match",
 
-    "carpyncho.steps.merge_lightcurves.MergeLightCurves",
+    "carpyncho.steps.create_lc.CreateLightCurves",
 
     "carpyncho.steps.features_extractor.FeaturesExtractor"
 ]
