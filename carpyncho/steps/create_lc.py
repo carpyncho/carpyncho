@@ -52,18 +52,11 @@ class CreateLightCurves(run.Step):
         tile, query = generated
         return isinstance(tile, Tile) and hasattr(query, "__iter__")
 
-    def get_lcs(self, tile):
-        lc = self.session.query(
-            LightCurves).filter(LightCurves.tile_id==tile.id).first()
-        if lc is None:
-            lc = LightCurves(tile=tile)
-        return lc
-
     def process(self, tile_pxts):
         tile, pxts = tile_pxts
 
         # new light curve
-        lc = self.get_lcs(tile)
+        lc = LightCurves(tile=tile)
 
         obs, total = None, pxts.count()
         for idx, pxt in enumerate(pxts):
