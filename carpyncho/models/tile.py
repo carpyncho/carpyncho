@@ -116,7 +116,8 @@ class LightCurves(db.Model):
         db.Integer, db.ForeignKey('Tile.id'), nullable=False, unique=True)
     tile = db.relationship("Tile", backref=db.backref("lcs"), lazy='joined')
 
-    _hdf_filename = db.Column("hdf_filename", db.Text)
+    _lc_filename = db.Column("lc_filename", db.Text)
+    _features_filename = db.Column("features_filename", db.Text)
 
     def __repr__(self):
         return "<LightCurves of '{}'>".format(self.tile.name)
