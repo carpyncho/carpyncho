@@ -42,10 +42,6 @@ class FeaturesExtractor(run.Step):
         self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
-        self.fs = feets.FeatureSpace(
-            data=["magnitude", "time", "error"],
-            only=["PeriodLS", "Std", "CAR_mean"],
-            exclude=["SlottedA_length", "StetsonK_AC"])
 
     def get_sources(self, lc):
         # get the ids of the sources with at least min_observation matches
