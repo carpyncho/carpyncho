@@ -5,6 +5,8 @@
 # IMPORTS
 # =============================================================================
 
+import numpy as np
+
 from corral import run
 
 from ..models import Tile, PawprintStackXTile, LightCurves
