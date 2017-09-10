@@ -153,3 +153,16 @@ class LightCurves(db.Model):
         fname = "lc_obs_{}.npy".format(self.tile.name)
         path = os.path.join(self.lc_path, fname)
         np.save(path, arr)
+
+    @property
+    def features(self):
+        fname = "features_{}.npy".format(self.tile.name)
+        path = os.path.join(self.lc_path, fname)
+        if os.path.exists(path):
+            return np.load(path)
+
+    @features.setter
+    def features(self, arr):
+        fname = "features_{}.npy".format(self.tile.name)
+        path = os.path.join(self.lc_path, fname)
+        np.save(path, arr)
