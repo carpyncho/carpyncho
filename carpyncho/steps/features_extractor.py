@@ -5,6 +5,9 @@
 # IMPORTS
 # =============================================================================
 
+import warnings
+import uuid
+
 from corral import run, conf
 
 import numpy as np
@@ -14,6 +17,46 @@ import pandas as pd
 import feets
 
 from ..models import LightCurves
+from ..lib.mppandas import mp_apply
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+class Extractor(object):
+
+    def __init__(self, fs, obs, tile_name):
+        self._fs = fs
+        self._obs = obs
+        self._tname = tile_name
+
+    def __call__(self, srcs):
+        fs = self._fs
+        self._cnt, self._total, self._uid = 1, len(srcs), uuid.uuid4()
+        srcs[fs.features_as_array_] = srcs.id.apply(self.extract)
+        del self._cnt, self._total, self._uid
+        return srcs
+
+    def extract(self, src_id):
+        print("[{}-chunk-{}] Extracting Source {}/{}...".format(
+            self._tname, self._uid, self._cnt, self._total))
+        self._cnt += 1
+
+        fs, obs = self._fs, self._obs
+        src_obs = obs[obs["bm_src_id"] == src_id]
+
+        time = src_obs["pwp_stack_src_hjd"]
+        mag = src_obs["pwp_stack_src_mag3"]
+        mag_err = src_obs["pwp_stack_src_mag_err3"]
+
+        sort_mask = time.argsort()
+        data = (mag[sort_mask], time[sort_mask], mag_err[sort_mask])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = dict(zip(*fs.extract_one(data)))
+
+        return pd.Series(result)
 
 
 # =============================================================================
@@ -42,6 +85,8 @@ class FeaturesExtractor(run.Step):
         self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
+        #~ self.fs = feets.FeatureSpace(
+            #~ only=["PeriodLS", "AMP"])
 
     def get_sources(self, lc):
         # get the ids of the sources with at least min_observation matches
@@ -67,19 +112,7 @@ class FeaturesExtractor(run.Step):
         obs = obs[np.in1d(obs["bm_src_id"], sources.id)]
         return obs
 
-    def chunk_it(self, sources):
-        split_size = int(len(sources) / self.chunk_size)
-        chunks = np.array_split(sources, split_size)
-        return chunks
-
-    def merge_features(self, srcs, features, values):
-        df1 = pd.DataFrame(srcs)[["id", "ogle3_type", "obs_number"]]
-        df2 = pd.DataFrame(values, columns=features)
-        return pd.concat((df1, df2), axis=1)
-
     def extract(self, src_id, obs):
-        print("Processing {}/{} ({})...".format(
-            self._current_proc, self._total, self._tile_name))
         src_obs = obs[obs["bm_src_id"] == src_id]
 
         time = src_obs["pwp_stack_src_hjd"]
@@ -93,21 +126,16 @@ class FeaturesExtractor(run.Step):
             warnings.simplefilter("ignore")
             result = dict(zip(*self.fs.extract_one(data)))
 
-        self._current_proc += 1
         return pd.Series(result)
 
     def process(self, lc):
         print("Selecting sources...")
         sources = self.get_sources(lc)
-        print("Filtering observarions....")
+        print("Filtering observarions...")
         obs = self.get_obs(lc, sources)
 
-        self._tile_name = lc.tile.name
-        self._total = len(sources)
-        self._current_proc = 1
-
-        sources[self.fs.features_as_array_] = (
-            sources.id.apply(lambda src_id: self.extract(src_id, obs)))
+        extractor = Extractor(self.fs, obs, lc.tile.name)
+        sources = mp_apply(sources, extractor)
 
         # convert to recarray
         sources = sources.to_records(index=False)
