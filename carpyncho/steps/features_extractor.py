@@ -74,14 +74,14 @@ class FeaturesExtractor(run.Step):
         model.tile.has(ready=False)]
     groups = ["fe"]
 
-    chunk_size = conf.settings.get("FE_CHUNK_SIZE", 10)
     min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
-    write_limit = conf.settings.get("FE_WRITE_LIMIT", 500)
+    mp_cores = conf.settings.get("FE_MP_CORES", None)
+    mp_split = conf.settings.get("FE_MP_SPLIT", None)
 
     def setup(self):
         print("chunk_size:", self.chunk_size)
-        print("min_observation:", self.min_observation)
-        print("write_limit:", self.write_limit)
+        print("mp_cores:", self.mp_cores)
+        print("mp_split:", self.mp_split)
         self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
             exclude=["SlottedA_length", "StetsonK_AC"])
@@ -112,22 +112,6 @@ class FeaturesExtractor(run.Step):
         obs = obs[np.in1d(obs["bm_src_id"], sources.id)]
         return obs
 
-    def extract(self, src_id, obs):
-        src_obs = obs[obs["bm_src_id"] == src_id]
-
-        time = src_obs["pwp_stack_src_hjd"]
-        mag = src_obs["pwp_stack_src_mag3"]
-        mag_err = src_obs["pwp_stack_src_mag_err3"]
-
-        sort_mask = time.argsort()
-        data = (mag[sort_mask], time[sort_mask], mag_err[sort_mask])
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = dict(zip(*self.fs.extract_one(data)))
-
-        return pd.Series(result)
-
     def process(self, lc):
         print("Selecting sources...")
         sources = self.get_sources(lc)
@@ -135,7 +119,8 @@ class FeaturesExtractor(run.Step):
         obs = self.get_obs(lc, sources)
 
         extractor = Extractor(self.fs, obs, lc.tile.name)
-        sources = mp_apply(sources, extractor)
+        sources = mp_apply(
+            sources, extractor, procs=self.mp_cores, chunks=self.mp_split)
 
         # convert to recarray
         sources = sources.to_records(index=False)
