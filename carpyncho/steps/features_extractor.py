@@ -79,7 +79,7 @@ class FeaturesExtractor(run.Step):
     mp_split = conf.settings.get("FE_MP_SPLIT", None)
 
     def setup(self):
-        print("chunk_size:", self.chunk_size)
+        print("min_observation:", self.min_observation)
         print("mp_cores:", self.mp_cores)
         print("mp_split:", self.mp_split)
         self.fs = feets.FeatureSpace(
