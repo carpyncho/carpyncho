@@ -164,7 +164,7 @@ class FeaturesExtractor(run.Step):
         all_sources = self.get_sources(lc)
         print("{} SOURCES FOUND!".format(len(all_sources)))
 
-        #~ all_obs = self.get_obs(lc.observations, all_sources.id)
+        all_obs = self.get_obs(lc.observations, all_sources.id)
 
         # chunk all the sources (the rename is for free memory
         chunks = self.chunk_it(all_sources)
@@ -178,7 +178,7 @@ class FeaturesExtractor(run.Step):
             print("Chunk {}/{} START!".format(chunkn + 1, chunkst))
 
             print("Filtering observarions...")
-            obs = self.get_obs(lc.observations, sources.id)
+            obs = self.get_obs(all_obs, sources.id)
 
             extractor = Extractor(
                 fs=self.fs, obs=obs, tile_name=lc.tile.name,
