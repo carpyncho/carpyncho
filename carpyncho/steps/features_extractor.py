@@ -9,6 +9,9 @@ from __future__ import print_function
 
 import warnings
 import uuid
+import datetime as dt
+import os
+import glob
 
 from corral import run, conf
 
@@ -20,6 +23,7 @@ import feets
 
 from ..models import LightCurves
 from ..lib.mppandas import mp_apply, CORES
+
 
 # =============================================================================
 # HELPER FUNCTIONS
@@ -92,7 +96,42 @@ class FeaturesExtractor(run.Step):
         print("mp_split:", self.mp_split)
         self.fs = feets.FeatureSpace(
             data=["magnitude", "time", "error"],
-            exclude=["SlottedA_length", "StetsonK_AC"])
+            exclude=["SlottedA_length",
+                     "StetsonK_AC",
+                     "StructureFunction_index_21",
+                     "StructureFunction_index_31",
+                     "StructureFunction_index_32"])
+
+    def get_cache_path(self, lc):
+        """Return a cache directory for the given lightcurve"""
+        cache_path = os.path.join(lc.lc_path, "cache")
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        return cache_path
+
+    def get_cached_ids(self, lc):
+        """Get only the id column of all the cache files in a single array"""
+        cache_path = self.get_cache_path(lc)
+        ids = None
+        for fpath in glob.glob(os.path.join(cache_path, "cache_*.npy")):
+            new_ids = np.load(fpath)["id"]
+            if ids is None:
+                ids = new_ids
+            else:
+                ids = np.append(ids, new_ids)
+        return ids
+
+    def combine_cache(self, lc):
+        """Retrieve al the cache files ina single array"""
+        cache_path = self.get_cache_path(lc)
+        feats = None
+        for fpath in glob.glob(os.path.join(cache_path, "cache_*.npy")):
+            new_feats = np.load(fpath)
+            if feats is None:
+                feats = new_feats
+            else:
+                feats = np.append(feats, new_feats)
+        return feats
 
     def get_sources(self, lc):
         """Get the sources of the lightcurve"""
@@ -108,9 +147,9 @@ class FeaturesExtractor(run.Step):
         sources = sources[sources.id.isin(with_min_obs.id)]
 
         # filter the already used sources
-        exclude = lc.features
+        exclude = self.get_cached_ids(lc)
         if exclude is not None:
-            sources = sources[~sources.id.isin(exclude["id"])]
+            sources = sources[~sources.id.isin(exclude)]
 
         # add the cnt
         sources = pd.merge(sources, with_min_obs, on="id", how="inner")
@@ -119,11 +158,6 @@ class FeaturesExtractor(run.Step):
         del cnt, with_min_obs, exclude
 
         return sources
-
-    def get_obs(self, obs, sources_ids):
-        """Return the observations of the given sources"""
-        obs = obs[np.in1d(obs["bm_src_id"], sources_ids)]
-        return obs
 
     def chunk_it(self, sources):
         """Split the source in many parts to low the memory footprint in pandas
@@ -135,6 +169,7 @@ class FeaturesExtractor(run.Step):
         return chunks
 
     def to_recarray(self, sources):
+        """Convert the sources dataframr into recarray to easy storage"""
         # convert to recarray
         sources = sources.to_records(index=False)
 
@@ -146,25 +181,24 @@ class FeaturesExtractor(run.Step):
 
         return sources.astype(dt)
 
-    def write_is_needed(self, lc, features):
-        if len(features) < self.write_limit:
-            return features
-        print("Writing {} new features...".format(len(features)))
-        stored = lc.features
-        if stored is None:
-            to_store = features
-        else:
-            to_store = np.append(stored, features)
-        lc.features = to_store
-        print("{} FEATURES SET STORED!".format(len(to_store)))
-        del stored, to_store
+    def to_cache(self, lc, features, force=False):
+        """Store the features into a cache if its needed"""
+        if features is not None and (force or len(features) >= self.write_limit):
+            print("Caching {} new features...".format(len(features)))
+            cache_path = self.get_cache_path(lc)
+            filename = "cache_{}.npy".format(dt.datetime.now().isoformat())
+            file_path = os.path.join(cache_path, filename)
+            np.save(file_path, features)
+            features = None
+        return features
 
     def process(self, lc):
         print("Selecting sources...")
         all_sources = self.get_sources(lc)
         print("{} SOURCES FOUND!".format(len(all_sources)))
 
-        all_obs = self.get_obs(lc.observations, all_sources.id)
+        all_obs = lc.observations
+        all_obs = all_obs[np.in1d(all_obs["bm_src_id"], all_sources.id)]
 
         # chunk all the sources (the rename is for free memory
         chunks = self.chunk_it(all_sources)
@@ -178,7 +212,8 @@ class FeaturesExtractor(run.Step):
             print("Chunk {}/{} START!".format(chunkn + 1, chunkst))
 
             print("Filtering observarions...")
-            obs = self.get_obs(all_obs, sources.id)
+            obs = all_obs[np.in1d(all_obs["bm_src_id"], sources.id)]
+            all_obs = all_obs[~np.in1d(all_obs["bm_src_id"], sources.id)]
 
             extractor = Extractor(
                 fs=self.fs, obs=obs, tile_name=lc.tile.name,
@@ -192,8 +227,12 @@ class FeaturesExtractor(run.Step):
                 features = result
             else:
                 features = np.append(features, result)
+            features = self.to_cache(lc, features)
 
-            features = self.write_is_needed(lc, features)
+        self.to_cache(lc, features, force=True)
+        del features
 
-        features = self.write_is_needed(lc, features)
+        if len(all_obs) == 0:
+            lc.features = self.combine_cache(lc)
+
         self.session.commit()
