@@ -123,6 +123,11 @@ class LightCurves(db.Model):
     def __repr__(self):
         return "<LightCurves of '{}'>".format(self.tile.name)
 
+    def _check_write(self, attr):
+        if self.tile.ready:
+            msg = "Tile {} are ready so the Lightcurve.{} is readonly"
+            raise AttributeError(msg.format(self.tile.name, attr))
+
     def _set_cnt(self, ids):
         cnt = Counter(ids)
         gen = (e for e in cnt.items())
@@ -149,6 +154,7 @@ class LightCurves(db.Model):
 
     @observations.setter
     def observations(self, arr):
+        self._check_write("observations")
         self._set_cnt(arr["bm_src_id"])
         fname = "lc_obs_{}.npy".format(self.tile.name)
         path = os.path.join(self.lc_path, fname)
@@ -163,6 +169,7 @@ class LightCurves(db.Model):
 
     @features.setter
     def features(self, arr):
+        self._check_write("features")
         fname = "features_{}.npy".format(self.tile.name)
         path = os.path.join(self.lc_path, fname)
         np.save(path, arr)
