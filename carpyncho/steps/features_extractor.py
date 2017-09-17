@@ -196,6 +196,8 @@ class FeaturesExtractor(run.Step):
         print("Selecting sources...")
         all_sources = self.get_sources(lc)
         print("{} SOURCES FOUND!".format(len(all_sources)))
+        if len(all_sources) == 0:
+            yield lc
 
         all_obs = lc.observations
         all_obs = all_obs[np.in1d(all_obs["bm_src_id"], all_sources.id)]
@@ -234,5 +236,7 @@ class FeaturesExtractor(run.Step):
 
         if len(all_obs) == 0:
             lc.features = self.combine_cache(lc)
+
+        lc.ready = True
 
         self.session.commit()
