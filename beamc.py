@@ -95,12 +95,12 @@ def prepare_data(l, b, box_size):
     ----------
 
     l : int or arry-like
-      Galactic latitude in degrees. If is a number ``b`` must be a number to;
+      Galactic longitude in degrees. If is a number ``b`` must be a number to;
       if is an array ``b`` must be an array and the two must has the same
       length. Also ``-10 <= l <= +10.2``.
     b : int or arry-like
-      Galactic longitude in degrees. If is a number `b` must be a number to;
-      if is an array `b` must be an array and the two must has the same length.
+      Galactic latitude in degrees. If is a number `l` must be a number to;
+      if is an array `l` must be an array and the two must has the same length.
       also  ``-10 <= b <= +5``
     box_size : int or arry-like
         Can be a number >= MIN_BOX_SIZE o an array-like with the same length
@@ -110,9 +110,9 @@ def prepare_data(l, b, box_size):
     -------
 
     l: np.ndarray
-        The galactic latitude in a numpy array
-    b: np.ndarray
         The galactic longitude in a numpy array
+    b: np.ndarray
+        The galactic latitude in a numpy array
     box_size: np.ndarray
         The box size in a numpy array. If the input its only a number, this
         create a new array with the same value in all the positions
@@ -142,6 +142,7 @@ def prepare_data(l, b, box_size):
 
 
 def beamc_post(data, formats, file_name, form_name):
+    """Excecute the post sending the array to beam calculator"""
     stream = StringIO()
     np.savetxt(stream, data, fmt=formats)
     response = requests.post(
@@ -190,7 +191,14 @@ def extinction(ra, dec, box_size, law,
         file_name="ext_file", form_name="ext_fileform")
 
     dtype = [
-        (str(c), float if c != "ext_law" else int)
-        for c in response.text.splitlines()[0][1:].split()]
+        ('l', float), ('b', float), ('box', float), ('ext_law', int),
+        ('ejk', float), ('ak', float), ('err_ejk', float)]
     ext = np.loadtxt(StringIO(response.text), dtype=dtype)
+
+
+    c1 = SkyCoord(
+        l=ext['l'] * u.degree, b=ext['b'] * u.degree, frame='galactic')
+
+    import ipdb; ipdb.set_trace()
+
     return ext
