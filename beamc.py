@@ -69,6 +69,13 @@ SERVER_SOURCES_LIMIT = 40000
 
 MIN_BOX_SIZE = 1.001
 
+FORMS = {
+    "extinction": {
+        "formats": ['%10.8f', '%10.8f', '%4.3f', '%i'],
+        "file_name": "ext_file",
+        "form_name": "ext_fileform"}
+}
+
 
 # =============================================================================
 # FUNTIONS
@@ -87,6 +94,7 @@ def to_latlon(ra, dec, frame="fk5"):
     l[to_big] = l[to_big] - 360
 
     return l, b
+
 
 def prepare_data(l, b, box_size):
     """Parse the data to be feeded into extintion and metallicity
@@ -141,8 +149,13 @@ def prepare_data(l, b, box_size):
     return l, b, box_size
 
 
-def beamc_post(data, formats, file_name, form_name):
+def beamc_post(data, form):
     """Excecute the post sending the array to beam calculator"""
+    form_params = FORMS[form]
+    formats = form_params["formats"]
+    file_name = form_params["file_name"]
+    form_name = form_params["form_name"]
+
     stream = StringIO()
     np.savetxt(stream, data, fmt=formats)
     response = requests.post(
@@ -186,15 +199,12 @@ def extinction(ra, dec, box_size, law,
 
     data = np.vstack((l, b, box_size, law)).T
 
-    response = beamc_post(
-        data=data, formats=['%10.8f', '%10.8f', '%4.3f', '%i'],
-        file_name="ext_file", form_name="ext_fileform")
+    response = beamc_post(data=data, form="extinction")
 
     dtype = [
         ('l', float), ('b', float), ('box', float), ('ext_law', int),
         ('ejk', float), ('ak', float), ('err_ejk', float)]
     ext = np.loadtxt(StringIO(response.text), dtype=dtype)
-
 
     c1 = SkyCoord(
         l=ext['l'] * u.degree, b=ext['b'] * u.degree, frame='galactic')
