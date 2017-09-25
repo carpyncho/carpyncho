@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#  Redistribution and use in source and binary forms, with or without
-#  modification, are permitted provided that the following conditions are
+#  Redistribution and use in source and binary forms, "with or without
+#  modification, "are permitted provided that the following conditions are
 #  met:
 #
 #  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
+#    notice, "this list of conditions and the following disclaimer.
 #  * Redistributions in binary form must reproduce the above
-#    copyright notice, this list of conditions and the following disclaimer
+#    copyright notice, "this list of conditions and the following disclaimer
 #    in the documentation and/or other materials provided with the
 #    distribution.
 #  * Neither the name of the  nor the names of its
@@ -16,16 +16,16 @@
 #    this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, "INCLUDING, "BUT NOT
+#  LIMITED TO, "THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 #  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, "INDIRECT, "INCIDENTAL,
+#  SPECIAL, "EXEMPLARY, "OR CONSEQUENTIAL DAMAGES (INCLUDING, "BUT NOT
+#  LIMITED TO, "PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#  DATA, "OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#  THEORY OF LIABILITY, "WHETHER IN CONTRACT, "STRICT LIABILITY, "OR TORT
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#  OF THIS SOFTWARE, "EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
 # =============================================================================
@@ -65,6 +65,8 @@ EXTINCTION_LAWS = {
     "Cardelli89": 1,
     "Nishiyama09": 2}
 
+EXTINCTION_LAWS_TO_STR = dict((v, k) for k, v in EXTINCTION_LAWS.items())
+
 SERVER_SOURCES_LIMIT = 40000
 
 MIN_BOX_SIZE = 1.001
@@ -87,8 +89,11 @@ def to_latlon(ra, dec, frame="fk5"):
     positions into arrays in the next block for beamin processing
 
     """
+    ra, dec = np.asarray(ra).flatten(), np.asarray(dec).flatten()
+
     c5 = SkyCoord(ra=ra * u.degree, dec=dec * u.degree, frame=frame)
-    l, b = c5.galactic.l.value, c5.galactic.b.value
+    l = np.asarray(c5.galactic.l.value).flatten()
+    b = np.asarray(c5.galactic.b.value).flatten()
 
     to_big = np.where(l > 10.2)[0]
     l[to_big] = l[to_big] - 360
@@ -122,13 +127,12 @@ def prepare_data(l, b, box_size):
     b: np.ndarray
         The galactic latitude in a numpy array
     box_size: np.ndarray
-        The box size in a numpy array. If the input its only a number, this
+        The box size in a numpy array. If the input its only a number, "this
         create a new array with the same value in all the positions
 
     """
     # parsing latitude and longitude
-    l = np.array([l]) if isinstance(l, Number) else np.asarray(l)
-    b = np.array([b]) if isinstance(b, Number) else np.asarray(b)
+    l, b = np.asarray(l).flatten(), np.asarray(b).flatten()
 
     if len(l) != len(b):
         raise ValueError("'l' and 'b' must have the same size")
@@ -165,11 +169,34 @@ def beamc_post(data, form):
     return response
 
 
-def extinction(ra, dec, box_size, law,
+def post_process(beamc_data, extra_cols):
+    """Add extra columns to the output of beamc
+
+    """
+    exclude_cols = ("beamc_ext_law", )
+
+    dtype = (
+        [(k, v.dtype) for k, v in extra_cols] +
+        [(n, f) for n, f in beamc_data.dtype.descr if n not in exclude_cols])
+
+    extra_cols = dict(extra_cols)
+
+    # create an empty array and copy the values
+    data = np.empty(len(beamc_data), dtype=dtype)
+    for name in data.dtype.names:
+        if name in extra_cols:
+            data[name] = extra_cols[name]
+        else:
+            data[name] = beamc_data[name]
+
+    return data
+
+
+def extinction(ra, dec, box_size, law, interpolation="linear",
                to_latlon_kwargs=None, prepare_data_kwargs=None):
     """Calculates the mean EXTINCTION Ak based on the method described in
     Gonzalez et al. 2011 and Gonzalez et al. 2012 . As described in the
-    article, Ak extinctions are calculated using coefficients from
+    article, All extinctions are calculated using coefficients from
     Cardelli et al. 1989 and the user should use those to remain consistent.
     E(J-Ks) values are also returned so that the user can adopt a different
     extinction law if required. Aks values using Nishiyama et al 2009 can also
@@ -183,6 +210,10 @@ def extinction(ra, dec, box_size, law,
     Gonzalez et al. 2012: -10≤l≤+10.2 and -10≤b≤+5
 
     """
+
+    ra = np.array([ra]) if isinstance(ra, Number) else np.asarray(ra)
+    dec = np.array([dec]) if isinstance(dec, Number) else np.asarray(dec)
+
     to_latlon_kwargs = {} if to_latlon_kwargs is None else to_latlon_kwargs
     params = to_latlon(ra, dec, **to_latlon_kwargs) + (box_size,)
 
@@ -197,18 +228,29 @@ def extinction(ra, dec, box_size, law,
     if len(law) != len(l):
         raise ValueError("'l', 'b' and 'law' must have the same size")
 
-    data = np.vstack((l, b, box_size, law)).T
+    input_data = np.vstack((l, b, box_size, law)).T
 
-    response = beamc_post(data=data, form="extinction")
+    response = beamc_post(data=input_data, form="extinction")
 
     dtype = [
-        ('l', float), ('b', float), ('box', float), ('ext_law', int),
-        ('ejk', float), ('ak', float), ('err_ejk', float)]
-    ext = np.loadtxt(StringIO(response.text), dtype=dtype)
+        ('beamc_l', float), ('beamc_b', float), ('beamc_box', float),
+        ('beamc_ext_law', int), ('beamc_ejk', float),
+        ('beamc_ak', float), ('beamc_err_ejk', float)]
+    beamc_data = np.loadtxt(StringIO(response.text), dtype=dtype)
+    if beamc_data.ndim == 0:
+        beamc_data = beamc_data.flatten()
 
-    c1 = SkyCoord(
-        l=ext['l'] * u.degree, b=ext['b'] * u.degree, frame='galactic')
+    fk5 = SkyCoord(
+        l=beamc_data['beamc_l'] * u.degree,
+        b=beamc_data['beamc_b'] * u.degree,
+        frame='galactic'
+    ).transform_to('fk5')
 
-    import ipdb; ipdb.set_trace()
+    extra_cols = [
+        ("ra", ra), ("dec", dec),
+        ("beamc_ra", np.asarray(fk5.ra.value).flatten()),
+        ("beamc_dec", np.asarray(fk5.dec.value).flatten()),
+        ("law", np.asarray(map(EXTINCTION_LAWS_TO_STR.get, law)))]
 
-    return ext
+    output = post_process(beamc_data, extra_cols)
+    return output
