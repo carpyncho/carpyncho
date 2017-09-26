@@ -83,17 +83,14 @@ FORMS = {
 # FUNTIONS
 # =============================================================================
 
-def to_latlon(ra, dec, frame="fk5"):
+def to_latlon(coord):
     """Here we convert all stars to galactic coords and anything with
     -10.0 <= gal_lon <= 10.2 we subtract 360 (for beaminput) and feed the
     positions into arrays in the next block for beamin processing
 
     """
-    ra, dec = np.asarray(ra).flatten(), np.asarray(dec).flatten()
-
-    c5 = SkyCoord(ra=ra * u.degree, dec=dec * u.degree, frame=frame)
-    l = np.asarray(c5.galactic.l.value).flatten()
-    b = np.asarray(c5.galactic.b.value).flatten()
+    l = np.asarray(coord.galactic.l.value).flatten()
+    b = np.asarray(coord.galactic.b.value).flatten()
 
     to_big = np.where(l > 10.2)[0]
     l[to_big] = l[to_big] - 360
@@ -193,7 +190,7 @@ def post_process(beamc_data, extra_cols):
 
 
 def extinction(ra, dec, box_size, law, interpolation="linear",
-               to_latlon_kwargs=None, prepare_data_kwargs=None):
+               inframe="fk5", prepare_data_kwargs=None):
     """Calculates the mean EXTINCTION Ak based on the method described in
     Gonzalez et al. 2011 and Gonzalez et al. 2012 . As described in the
     article, All extinctions are calculated using coefficients from
@@ -213,9 +210,9 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
 
     ra = np.array([ra]) if isinstance(ra, Number) else np.asarray(ra)
     dec = np.array([dec]) if isinstance(dec, Number) else np.asarray(dec)
+    in_coord = SkyCoord(ra=ra * u.degree, dec=dec * u.degree, frame=inframe)
 
-    to_latlon_kwargs = {} if to_latlon_kwargs is None else to_latlon_kwargs
-    params = to_latlon(ra, dec, **to_latlon_kwargs) + (box_size,)
+    params = to_latlon(in_coord) + (box_size,)
 
     prepare_data_kwargs = (
         {} if prepare_data_kwargs is None else prepare_data_kwargs)
@@ -240,17 +237,26 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
     if beamc_data.ndim == 0:
         beamc_data = beamc_data.flatten()
 
-    fk5 = SkyCoord(
+    beamc_coord = SkyCoord(
         l=beamc_data['beamc_l'] * u.degree,
         b=beamc_data['beamc_b'] * u.degree,
         frame='galactic'
-    ).transform_to('fk5')
+    ).transform_to(inframe)
+
+    beamc_ra = np.asarray(beamc_coord.ra.value).flatten()
+    beamc_dec = np.asarray(beamc_coord.dec.value).flatten()
+    beamc_separation = in_coord.separation(beamc_coord)
+    import ipdb; ipdb.set_trace()
+
+    beamc_law = np.asarray(map(EXTINCTION_LAWS_TO_STR.get, law))
 
     extra_cols = [
-        ("ra", ra), ("dec", dec),
-        ("beamc_ra", np.asarray(fk5.ra.value).flatten()),
-        ("beamc_dec", np.asarray(fk5.dec.value).flatten()),
-        ("law", np.asarray(map(EXTINCTION_LAWS_TO_STR.get, law)))]
+        ("ra", ra),
+        ("dec", dec),
+        ("beamc_ra", beamc_ra),
+        ("beamc_dec", beamc_dec),
+        ("beamc_separation", beamc_separation),
+        ("beamc_law", beamc_law)]
 
     output = post_process(beamc_data, extra_cols)
     return output
