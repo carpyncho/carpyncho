@@ -49,7 +49,7 @@ import requests
 
 import numpy as np
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, match_coordinates_sky
 from astropy import units as u
 
 from six import string_types, StringIO
@@ -77,6 +77,8 @@ FORMS = {
         "file_name": "ext_file",
         "form_name": "ext_fileform"}
 }
+
+EPS = np.finfo(float).eps
 
 
 # =============================================================================
@@ -166,10 +168,8 @@ def beamc_post(data, form):
     return response
 
 
-def post_process(beamc_data, extra_cols):
-    """Add extra columns to the output of beamc
-
-    """
+def _post_process(beamc_data, extra_cols):
+    """Add extra columns to the output of beamc"""
     exclude_cols = ("beamc_ext_law", )
 
     dtype = (
@@ -189,8 +189,44 @@ def post_process(beamc_data, extra_cols):
     return data
 
 
-def extinction(ra, dec, box_size, law, interpolation="linear",
-               inframe="fk5", prepare_data_kwargs=None):
+def _knn_mean_ak_ejk(catalog, catalog_ak, catalog_ejk,
+                     to_replace, knn, **match_coords_kwargs):
+
+    # the coordinates to search
+    to_search = catalog[to_replace]
+
+    # the catalog must be cleaned from the data of the sources to search
+    clean_cat_mask = ~np.in1d(np.arange(len(catalog)), to_replace)
+    clean_cat, clean_cat_ak, clean_cat_ejk = (catalog[clean_cat_mask],
+                                              catalog_ak[clean_cat_mask],
+                                              catalog_ejk[clean_cat_mask])
+
+
+    kidx, kdis = None, None
+    for nthneighbor in range(1, knn+1):
+        dx, d2d = match_coordinates_sky(to_search, clean_cat,
+                                        nthneighbor=nthneighbor,
+                                        **match_coords_kwargs)[:-1]
+        if kidx is None:
+            kidx, kdis = dx, d2d.value
+        else:
+            kidx = np.vstack((kidx, dx))
+            kdis = np.vstack((kdis, d2d.value))
+
+    # change the zeros by a epsilon
+    kdis[kdis == 0] = EPS
+    weights = 1 / kdis
+
+
+
+    import ipdb; ipdb.set_trace()
+
+
+
+
+def extinction(ra, dec, box_size, law, inframe="fk5",
+               fix_missing_knn=20, prepare_data_kwargs=None,
+               knn_mean_ak_ejk_kwargs=None):
     """Calculates the mean EXTINCTION Ak based on the method described in
     Gonzalez et al. 2011 and Gonzalez et al. 2012 . As described in the
     article, All extinctions are calculated using coefficients from
@@ -208,16 +244,19 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
 
     """
 
+    # validate the shape of the input coordinates and create the catalog
+    # of coordinates with astropy help
     ra = np.array([ra]) if isinstance(ra, Number) else np.asarray(ra)
     dec = np.array([dec]) if isinstance(dec, Number) else np.asarray(dec)
     in_coord = SkyCoord(ra=ra * u.degree, dec=dec * u.degree, frame=inframe)
 
+    # prepare tge data for the beam calculator
     params = to_latlon(in_coord) + (box_size,)
-
     prepare_data_kwargs = (
         {} if prepare_data_kwargs is None else prepare_data_kwargs)
     l, b, box_size = prepare_data(*params, **prepare_data_kwargs)
 
+    # convert the law data into integers
     law = (
         np.zeros(len(l), dtype=int) + EXTINCTION_LAWS[law]
         if isinstance(law, string_types) else
@@ -225,10 +264,13 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
     if len(law) != len(l):
         raise ValueError("'l', 'b' and 'law' must have the same size")
 
+    # create the numpy array for send to beam calc
     input_data = np.vstack((l, b, box_size, law)).T
 
+    # send the arrays and retrieve the requests response object
     response = beamc_post(data=input_data, form="extinction")
 
+    # convert the response object into a numpy array
     dtype = [
         ('beamc_l', float), ('beamc_b', float), ('beamc_box', float),
         ('beamc_ext_law', int), ('beamc_ejk', float),
@@ -237,18 +279,19 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
     if beamc_data.ndim == 0:
         beamc_data = beamc_data.flatten()
 
+    # convert the beamc array into a RA and dec coordinates system
     beamc_coord = SkyCoord(
         l=beamc_data['beamc_l'] * u.degree,
         b=beamc_data['beamc_b'] * u.degree,
         frame='galactic'
     ).transform_to(inframe)
 
+    # create the extra columns to add to the output
     beamc_ra = np.asarray(beamc_coord.ra.value).flatten()
     beamc_dec = np.asarray(beamc_coord.dec.value).flatten()
     beamc_separation = in_coord.separation(beamc_coord)
-    import ipdb; ipdb.set_trace()
-
     beamc_law = np.asarray(map(EXTINCTION_LAWS_TO_STR.get, law))
+    beamc_success = (~(beamc_data["beamc_ak"] == 0)).astype(int)
 
     extra_cols = [
         ("ra", ra),
@@ -256,7 +299,26 @@ def extinction(ra, dec, box_size, law, interpolation="linear",
         ("beamc_ra", beamc_ra),
         ("beamc_dec", beamc_dec),
         ("beamc_separation", beamc_separation),
-        ("beamc_law", beamc_law)]
+        ("beamc_law", beamc_law),
+        ("beamc_sucess", beamc_success)]
 
-    output = post_process(beamc_data, extra_cols)
+    # create the output
+    output = _post_process(beamc_data, extra_cols)
+
+    # fix the missing reddening
+    if fix_missing_knn > 0:
+        idxs = np.where(beamc_success == 0)[0]
+        if len(idxs):
+            knn_mean_ak_ejk_kwargs = (
+                {} if knn_mean_ak_ejk_kwargs is None else
+                knn_mean_ak_ejk_kwargs)
+
+            knn_ak, knn_ejk = _knn_mean_ak_ejk(
+                catalog=beamc_coord,
+                catalog_ak=beamc_data["beamc_ak"],
+                catalog_ejk=beamc_data["beamc_ejk"],
+                to_replace=idxs,
+                knn=fix_missing_knn,
+                **knn_mean_ak_ejk_kwargs)
+
     return output
