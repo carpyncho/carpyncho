@@ -39,6 +39,7 @@ http://mill.astro.puc.cl/BEAM/calculator.php
 
 """
 
+
 # =============================================================================
 # IMPORTS
 # =============================================================================
@@ -53,6 +54,9 @@ from astropy.coordinates import SkyCoord, match_coordinates_sky
 from astropy import units as u
 
 from six import string_types, StringIO
+
+
+__all__ = ["extinction", "knnfix"]
 
 
 # =============================================================================
