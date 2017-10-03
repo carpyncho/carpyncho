@@ -201,7 +201,6 @@ def _knn_mean_ak_ejk(catalog, catalog_ak, catalog_ejk,
                                               catalog_ak[clean_cat_mask],
                                               catalog_ejk[clean_cat_mask])
 
-
     kidx, kdis = None, None
     for nthneighbor in range(1, knn+1):
         dx, d2d = match_coordinates_sky(to_search, clean_cat,
@@ -215,13 +214,18 @@ def _knn_mean_ak_ejk(catalog, catalog_ak, catalog_ejk,
 
     # change the zeros by a epsilon
     kdis[kdis == 0] = EPS
+
+    # make all the distances to be weights
     weights = 1 / kdis
 
+    # get all ejk and ak from the given kdis
+    kak, kejk = clean_cat_ak[kidx], clean_cat_ejk[kidx]
 
+    # calculate the weighted mean of the ak and ejk of the selected values
+    kak_mean = np.average(kak, weights=weights, axis=0)
+    kejk_mean = np.average(kejk, weights=weights, axis=0)
 
-    import ipdb; ipdb.set_trace()
-
-
+    return kak_mean, kejk_mean
 
 
 def extinction(ra, dec, box_size, law, inframe="fk5",
@@ -312,7 +316,6 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
             knn_mean_ak_ejk_kwargs = (
                 {} if knn_mean_ak_ejk_kwargs is None else
                 knn_mean_ak_ejk_kwargs)
-
             knn_ak, knn_ejk = _knn_mean_ak_ejk(
                 catalog=beamc_coord,
                 catalog_ak=beamc_data["beamc_ak"],
@@ -320,5 +323,8 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
                 to_replace=idxs,
                 knn=fix_missing_knn,
                 **knn_mean_ak_ejk_kwargs)
+
+            output["beamc_ak"][idxs] = knn_ak
+            output["beamc_ejk"][idxs] = knn_ak
 
     return output
