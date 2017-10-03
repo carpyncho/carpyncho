@@ -189,48 +189,8 @@ def _post_process(beamc_data, extra_cols):
     return data
 
 
-def _knn_mean_ak_ejk(catalog, catalog_ak, catalog_ejk,
-                     to_replace, knn, **match_coords_kwargs):
-
-    # the coordinates to search
-    to_search = catalog[to_replace]
-
-    # the catalog must be cleaned from the data of the sources to search
-    clean_cat_mask = ~np.in1d(np.arange(len(catalog)), to_replace)
-    clean_cat, clean_cat_ak, clean_cat_ejk = (catalog[clean_cat_mask],
-                                              catalog_ak[clean_cat_mask],
-                                              catalog_ejk[clean_cat_mask])
-
-    kidx, kdis = None, None
-    for nthneighbor in range(1, knn+1):
-        dx, d2d = match_coordinates_sky(to_search, clean_cat,
-                                        nthneighbor=nthneighbor,
-                                        **match_coords_kwargs)[:-1]
-        if kidx is None:
-            kidx, kdis = dx, d2d.value
-        else:
-            kidx = np.vstack((kidx, dx))
-            kdis = np.vstack((kdis, d2d.value))
-
-    # change the zeros by a epsilon
-    kdis[kdis == 0] = EPS
-
-    # make all the distances to be weights
-    weights = 1 / kdis
-
-    # get all ejk and ak from the given kdis
-    kak, kejk = clean_cat_ak[kidx], clean_cat_ejk[kidx]
-
-    # calculate the weighted mean of the ak and ejk of the selected values
-    kak_mean = np.average(kak, weights=weights, axis=0)
-    kejk_mean = np.average(kejk, weights=weights, axis=0)
-
-    return kak_mean, kejk_mean
-
-
 def extinction(ra, dec, box_size, law, inframe="fk5",
-               fix_missing_knn=20, prepare_data_kwargs=None,
-               knn_mean_ak_ejk_kwargs=None):
+               prepare_data_kwargs=None, knn_mean_ak_ejk_kwargs=None):
     """Calculates the mean EXTINCTION Ak based on the method described in
     Gonzalez et al. 2011 and Gonzalez et al. 2012 . As described in the
     article, All extinctions are calculated using coefficients from
@@ -308,23 +268,64 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
 
     # create the output
     output = _post_process(beamc_data, extra_cols)
-
-    # fix the missing reddening
-    if fix_missing_knn > 0:
-        idxs = np.where(beamc_success == 0)[0]
-        if len(idxs):
-            knn_mean_ak_ejk_kwargs = (
-                {} if knn_mean_ak_ejk_kwargs is None else
-                knn_mean_ak_ejk_kwargs)
-            knn_ak, knn_ejk = _knn_mean_ak_ejk(
-                catalog=beamc_coord,
-                catalog_ak=beamc_data["beamc_ak"],
-                catalog_ejk=beamc_data["beamc_ejk"],
-                to_replace=idxs,
-                knn=fix_missing_knn,
-                **knn_mean_ak_ejk_kwargs)
-
-            output["beamc_ak"][idxs] = knn_ak
-            output["beamc_ejk"][idxs] = knn_ak
-
     return output
+
+
+def knnfix(data, to_replace, knn, frame="fk5", **match_coords_kwargs):
+    """Search for the k nearest neightborgs for the sources included in
+    the to_replace array and calculate weighted mean of the ak and ejk values.
+
+    This function is usefull to fix the missing data from beamc
+
+
+    Example
+    -------
+
+    >>> # lets select the ak/ejk without values
+    >>> idxs = np.where(data["beamc_success"] == 0)[0]
+    >>> knn_ak, knn_ejk = knn_mean_ak_ejk(data, to_replace=idxs, knn=100)
+    >>> # fix the values
+    >>> data["beamc_ak"][idxs] = knn_ak
+    >>> data["beamc_ejk"][idxs] = knn_ejk
+
+    """
+    catalog = SkyCoord(
+        ra=data['beamc_ra'] * u.degree,
+        dec=data['beamc_dec'] * u.degree, frame=frame)
+    catalog_ak = data["beamc_ak"]
+    catalog_ejk = data["beamc_ejk"]
+
+    # the coordinates to search
+    to_search = catalog[to_replace]
+
+    # the catalog must be cleaned from the data of the sources to search
+    clean_cat_mask = ~np.in1d(np.arange(len(catalog)), to_replace)
+    clean_cat, clean_cat_ak, clean_cat_ejk = (catalog[clean_cat_mask],
+                                              catalog_ak[clean_cat_mask],
+                                              catalog_ejk[clean_cat_mask])
+
+    kidx, kdis = None, None
+    for nthneighbor in range(1, knn+1):
+        dx, d2d = match_coordinates_sky(to_search, clean_cat,
+                                        nthneighbor=nthneighbor,
+                                        **match_coords_kwargs)[:-1]
+        if kidx is None:
+            kidx, kdis = dx, d2d.value
+        else:
+            kidx = np.vstack((kidx, dx))
+            kdis = np.vstack((kdis, d2d.value))
+
+    # change the zeros by a epsilon
+    kdis[kdis == 0] = EPS
+
+    # make all the distances to be weights
+    weights = 1 / kdis
+
+    # get all ejk and ak from the given kdis
+    kak, kejk = clean_cat_ak[kidx], clean_cat_ejk[kidx]
+
+    # calculate the weighted mean of the ak and ejk of the selected values
+    kak_mean = np.average(kak, weights=weights, axis=0)
+    kejk_mean = np.average(kejk, weights=weights, axis=0)
+
+    return kak_mean, kejk_mean
