@@ -140,8 +140,10 @@ def prepare_data(l, b, box_size):
     if len(l) != len(b):
         raise ValueError("'l' and 'b' must have the same size")
     if len(l) > SERVER_SOURCES_LIMIT:
-        msg = 'The server can only deal with {} sources at the time'
-        raise ValueError(msg.format(SERVER_SOURCES_LIMIT))
+        msg = (
+            'The server can only deal with {} sources at the time. '
+            'You give: {}')
+        raise ValueError(msg.format(SERVER_SOURCES_LIMIT, len(l)))
 
     box_size = (
         np.zeros(len(l)) + box_size
