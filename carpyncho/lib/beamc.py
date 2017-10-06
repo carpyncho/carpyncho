@@ -174,13 +174,20 @@ def beamc_post(data, form):
     return response
 
 
-def _post_process(beamc_data, extra_cols):
+def add_columns(beamc_data, extra_cols, append=False):
     """Add extra columns to the output of beamc"""
     exclude_cols = ("beamc_ext_law", )
 
-    dtype = (
-        [(k, v.dtype) for k, v in extra_cols] +
-        [(n, f) for n, f in beamc_data.dtype.descr if n not in exclude_cols])
+    if append:
+        dtype = (
+            [(n, f) for n, f in beamc_data.dtype.descr
+             if n not in exclude_cols] +
+            [(k, v.dtype) for k, v in extra_cols])
+    else:
+        dtype = (
+            [(k, v.dtype) for k, v in extra_cols] +
+            [(n, f) for n, f in beamc_data.dtype.descr
+             if n not in exclude_cols])
 
     extra_cols = dict(extra_cols)
 
@@ -270,10 +277,10 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
         ("beamc_dec", beamc_dec),
         ("beamc_separation", beamc_separation),
         ("beamc_law", beamc_law),
-        ("beamc_sucess", beamc_success)]
+        ("beamc_success", beamc_success)]
 
     # create the output
-    output = _post_process(beamc_data, extra_cols)
+    output = add_columns(beamc_data, extra_cols)
     return output
 
 

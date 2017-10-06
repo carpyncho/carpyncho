@@ -44,7 +44,7 @@ class Tile(db.Model):
 
     #### Example
 
-    The id "40010000000130" (4-0001-0000000130) indicate the 130th source
+    The id "40010000000130" (4-001-0000000130) indicate the 130th source
     inside the tile d001.
 
     """
