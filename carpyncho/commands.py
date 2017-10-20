@@ -275,14 +275,20 @@ class SampleFeatures(cli.BaseCommand):
         with db.session_scope() as session:
             lc = session.query(LightCurves).filter(
                 LightCurves.tile.has(name=tname)).first()
+            print "Reading..."
             features = lc.features
 
+        print "Picking variables.."
         variables = features[features["ogle3_type"] != '']
+
+        print "Sampling unknow sources..."
         unknow = np.random.choice(
             features[features["ogle3_type"] == ''], sample_size)
 
+        print "Merging..."
         sample = np.concatenate((variables, unknow))
 
+        print "Saving..."
         np.save(output, sample)
 
 
