@@ -236,7 +236,6 @@ class FeaturesExtractor(run.Step):
 
         if len(all_obs) == 0:
             lc.features = self.combine_cache(lc)
-
-        lc.ready = True
-
+        
+        lc.tile.ready = True
         self.session.commit()
