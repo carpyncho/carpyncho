@@ -28,6 +28,8 @@ from psutil import virtual_memory
 
 import sh
 
+import numpy as np
+
 from texttable import Texttable
 
 from sqlalchemy.engine import url
