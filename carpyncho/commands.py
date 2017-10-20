@@ -272,10 +272,10 @@ class SampleFeatures(cli.BaseCommand):
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
             raise MemoryError(msg.format(min_memory_gb, total_gb))
-
-        lc = session.query(LightCurves).filter(
-            LightCurves.tile.has(name=tname)).first()
-        features = lc.features
+        with db.session_scope() as session:
+            lc = session.query(LightCurves).filter(
+                LightCurves.tile.has(name=tname)).first()
+            features = lc.features
 
         variables = features[features["ogle3_type"] != '']
         unknow = np.random.choice(
