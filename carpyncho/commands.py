@@ -24,6 +24,8 @@ import argparse
 import json
 from pprint import pprint
 
+from psutil import virtual_memory
+
 import sh
 
 from texttable import Texttable
@@ -237,6 +239,51 @@ class EnableFeatureExtraction(cli.BaseCommand):
                     query = session.query(Tile.name)
                     tryes = ", ".join([e[0] for e in query])
                     print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))
+
+
+class SampleFeatures(cli.BaseCommand):
+    """Create a sample of features of the given tile name.
+
+    This sample contains all the OGLE3-variable stars and a subset of unknow
+    sources.
+
+    """
+
+    options = {"title": "sample"}
+
+    def setup(self):
+        self.parser.add_argument(
+            "tname", action="store", help="name of the tile to sample")
+        self.parser.add_argument(
+            "--output", "-o", dest="output", required=True,
+            help="path of the sample file")
+        self.parser.add_argument(
+            "--sample-size", "-s", dest="sample_size", default=20e+3,
+            type=int, help="sample size of unknow sources")
+        self.parser.add_argument(
+            "--ignore-memory", "-i", dest="check_memory", default=True,
+            action="store_false",
+            help="ignore the memory che before run the command")
+
+    def handle(self, tname, output, sample_size, check_memory):
+        min_memory, mem = int(32e+9), virtual_memory()
+        if check_memory and mem.total < min_memory:
+            min_memory_gb = min_memory / 1e+9
+            total_gb = mem.total / 1e+9
+            msg = "You need at least {}GB of memory. Found {}GB"
+            raise MemoryError(msg.format(min_memory_gb, total_gb))
+
+        lc = session.query(LightCurves).filter(
+            LightCurves.tile.has(name=tname)).first()
+        features = lc.features
+
+        variables = features[features["ogle3_type"] != '']
+        unknow = np.random.choice(
+            features[features["ogle3_type"] == ''], sample_size)
+
+        sample = np.concatenate((variables, unknow))
+
+        np.save(output, sample)
 
 
 class DumpDB(cli.BaseCommand):
