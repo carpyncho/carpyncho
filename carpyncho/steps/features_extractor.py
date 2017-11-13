@@ -12,6 +12,7 @@ import uuid
 import datetime as dt
 import os
 import glob
+import shutil
 
 from corral import run, conf
 
@@ -120,6 +121,10 @@ class FeaturesExtractor(run.Step):
             else:
                 ids = np.append(ids, new_ids)
         return ids
+
+    def del_cached_ids(self, lc):
+        cache_path = self.get_cache_path(lc)
+        shutil.rmtree(cache_path)
 
     def combine_cache(self, lc):
         """Retrieve al the cache files ina single array"""
@@ -236,6 +241,7 @@ class FeaturesExtractor(run.Step):
 
         if len(all_obs) == 0:
             lc.features = self.combine_cache(lc)
-        
+
         lc.tile.ready = True
         self.session.commit()
+        self.del_cached_ids(lc)
