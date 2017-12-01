@@ -263,11 +263,15 @@ class SampleFeatures(cli.BaseCommand):
             "--sample-size", "-s", dest="sample_size", default=20e+3,
             type=int, help="sample size of unknow sources")
         self.parser.add_argument(
+            "--sample-all-class", "-sac", nargs="+",
+            dest="sample_all_class", default=[], action="store",
+            help="The list of positive class to be sampled completely")
+        self.parser.add_argument(
             "--ignore-memory", "-i", dest="check_memory", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
 
-    def handle(self, tname, output, sample_size, check_memory):
+    def handle(self, tname, output, sample_size, sample_all_class, check_memory):
         min_memory, mem = int(32e+9), virtual_memory()
         if check_memory and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
@@ -279,6 +283,8 @@ class SampleFeatures(cli.BaseCommand):
                 LightCurves.tile.has(name=tname)).first()
             print "Reading..."
             features = lc.features
+
+        import ipdb; ipdb.set_trace()
 
         print "Picking variables.."
         variables = features[features["ogle3_type"] != '']
@@ -292,6 +298,7 @@ class SampleFeatures(cli.BaseCommand):
 
         print "Saving..."
         np.save(output, sample)
+
 
 
 class DumpDB(cli.BaseCommand):
