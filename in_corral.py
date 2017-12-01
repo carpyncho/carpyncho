@@ -39,4 +39,5 @@ if __name__ == "__main__":
     os.environ.setdefault("CORRAL_SETTINGS_MODULE", "carpyncho.settings")
 
     from corral import cli
+    #import ipdb; ipdb.set_trace()
     cli.run_from_command_line()
