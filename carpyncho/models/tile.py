@@ -80,6 +80,14 @@ class Tile(db.Model):
         return "<Tile '{}'>".format(self.name)
 
     @property
+    def epochs(self):
+        if not hasattr(self, "_epochs"):
+            with open(self.raw_file_path) as fp:
+                epochs = [float(next(fp)) for _ in range(3)]
+            self._epochs = tuple(epochs)
+        return self._epochs
+
+    @property
     def raw_file_path(self):
         if self._raw_filename:
             return os.path.join(
