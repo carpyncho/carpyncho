@@ -23,6 +23,8 @@ import shutil
 import argparse
 import json
 from pprint import pprint
+from collections import Counter
+
 
 from psutil import virtual_memory
 
@@ -270,35 +272,92 @@ class SampleFeatures(cli.BaseCommand):
             "--ignore-memory", "-i", dest="check_memory", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
+        self.parser.add_argument(
+            "--min-proportion", "-mp", dest="min_proportion", default=0.01,
+            action="store", type=float,
+            help="The minimun percentage allowed by a sampling class")
 
-    def handle(self, tname, output, sample_size, sample_all_class, check_memory):
+    def handle(self, tname, output, sample_size, sample_all_class, check_memory, min_proportion):
         min_memory, mem = int(32e+9), virtual_memory()
         if check_memory and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
             raise MemoryError(msg.format(min_memory_gb, total_gb))
+        if min_proportion > 1 or min_proportion < 0:
+            msg = "min-proportion must be betwen [0, 1]"
+            raise ValueError(msg)
+
         with db.session_scope() as session:
             lc = session.query(LightCurves).filter(
                 LightCurves.tile.has(name=tname)).first()
             print "Reading..."
             features = lc.features
 
-        import ipdb; ipdb.set_trace()
+        print "Creating Filters..."
+        if sample_all_class:
+            var_filter = np.in1d(features["ogle3_type"], sample_all_class)
+        else:
+            var_filter = features["ogle3_type"] != ''
 
-        print "Picking variables.."
-        variables = features[features["ogle3_type"] != '']
+        print "Picking variables..."
+        variables = features[var_filter]
 
         print "Sampling unknow sources..."
-        unknow = np.random.choice(
-            features[features["ogle3_type"] == ''], sample_size)
+        unknow = np.random.choice(features[~var_filter], sample_size)
 
         print "Merging..."
         sample = np.concatenate((variables, unknow))
 
+        print "Checking sampling..."
+        selected_cls = Counter(features["ogle3_type"])
+        min_selection = sample_size * min_proportion
+        remove_unk = 0
+        for cls in np.unique(features["ogle3_type"]):
+            if cls not in selected_cls or selected_cls[cls] < min_selection:
+                full_cls = features[features["ogle3_type"] == cls]
+                cls_sample_size = np.min([full_cls.size, min_selection])
+                if cls_sample_size > 0:
+                    sample = np.concatenate((
+                        np.random.choice(full_cls, cls_sample_size), sample))
+                    remove_unk += int(cls_sample_size)
+
+        print "Removing class unknow..."
+        if remove_unk > 0:
+            where_unk = np.where(sample[sample["ogle3_type"] == ''])[0]
+
+            remove_unk_size = np.min([where_unk.size, remove_unk])
+            to_remove = np.random.choice(where_unk, remove_unk_size)
+            if len(to_remove):
+                sample = np.delete(sample, to_remove)
+
         print "Saving..."
         np.save(output, sample)
 
+
+class LSClasses(cli.BaseCommand):
+    """List the objective classes in the given tile"""
+
+    def setup(self):
+        self.parser.add_argument(
+            "tname", action="store", help="name of the tile to list classes")
+
+    def handle(self, tname):
+        log2critcal()
+
+        with db.session_scope() as session:
+            tile = session.query(Tile).filter(Tile.name==tname).first()
+            classes = Counter(tile.load_npy_file()["ogle3_type"])
+
+        table = Texttable(max_width=0)
+        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
+        table.header(("OGLE3 Type", "Count"))
+
+        for cls, cnt in sorted(classes.items()):
+            table.add_row([cls or "''", cnt])
+
+        print(table.draw())
+        print("Count: {}".format(np.sum(classes.values())))
 
 
 class DumpDB(cli.BaseCommand):
