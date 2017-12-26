@@ -26,7 +26,7 @@ SOURCE_DTYPE = {
         'ra_h', 'dec_h', 'ra_j',
         'dec_j', 'ra_k', 'dec_k',
         "mag_h", "mag_j", "mag_k",
-        "mag_err_h", "mag__err_j", "mag_err_k"],
+        "mag_err_h", "mag_err_j", "mag_err_k"],
     'formats': [
         float, float, float,
         float, float, float,
@@ -48,7 +48,7 @@ class ReadTile(run.Step):
     """
 
     model = Tile
-    conditions = [] #[model.status == "raw"]
+    conditions = [model.status == "raw"]
     groups = ["preprocess", "read"]
     production_procno = 1
 
@@ -90,7 +90,6 @@ class ReadTile(run.Step):
         return data
 
     def process(self, tile):
-        import ipdb; ipdb.set_trace()
         with open(tile.raw_file_path) as fp:
             oarr, size = self.read_dat(fp)
         arr = self.add_columns(oarr, size, tile.name, SOURCE_DTYPE)
