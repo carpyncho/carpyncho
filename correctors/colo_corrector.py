@@ -95,10 +95,10 @@ def main():
             nishiyama = fix_missing(nishiyama)
 
             columns = [
-                ("2m_c89_ejk", cardelli["beamc_ejk"]),
-                ("2m_c89_ak", cardelli["beamc_ak"]),
-                ("2m_n09_ejk", nishiyama["beamc_ejk"]),
-                ("2m_n09_ak", nishiyama["beamc_ak"])]
+                ("c89_ejk_2m", cardelli["beamc_ejk"]),
+                ("c89_ak_2m", cardelli["beamc_ak"]),
+                ("n09_ejk_2m", nishiyama["beamc_ejk"]),
+                ("n09_ak_2m", nishiyama["beamc_ak"])]
             with_columns = add_columns(filtered_tile, columns, append=True)
             np.save(path, with_columns)
 

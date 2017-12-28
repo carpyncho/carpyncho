@@ -12,7 +12,7 @@ from carpyncho.models import *
 
 from carpyncho.lib.beamc import (
     extinction, knnfix, add_columns, MIN_BOX_SIZE, SERVER_SOURCES_LIMIT)
-
+import sys;sys.exit()
 
 def main():
     with db.session_scope() as ses:
@@ -20,43 +20,50 @@ def main():
 
             arr = tile.load_npy_file()
 
-            # Cardelli: extition 2mass -> vvv
-            vvv_c89_ak = .364 * arr["2m_c89_ejk"]
-            vvv_c89_aj = .866 * vvv_c89_ak / .364
+            # set the aj, ah of n09 and c89
 
-            # Cardelli: absolute mags and colors
-            amag_c89_k = arr["mag_k"] - vvv_c89_ak
-            amag_c89_j = arr["mag_j"] - vvv_c89_aj
-            color_n09_jk = amag_c89_j - amag_c89_k
+            arr = add_columns(arr, [
+                ('c89_aj_2m', 1.692 * arr["c89_ejk_2m"]),
+                ('c89_ah_2m', 1.054 * arr["c89_ejk_2m"]),
+                ('n09_aj_2m', 1.526 * arr["n09_ejk_2m"]),
+                ('n09_ah_2m', 0.855 * arr["n09_ejk_2m"])], append=True)
 
-            # Nishiyama: extition 2mass -> vvv
-            vvv_n09_ak = .364 * arr["2m_n09_ejk"]
-            vvv_n09_aj = .866 * vvv_n09_ak / .364
 
-            # Nishiyama: absolute mags and colors
-            amag_n09_k = arr["mag_k"] - vvv_n09_ak
-            amag_n09_j = arr["mag_j"] - vvv_n09_aj
-            color_n09_jk = amag_n09_j - amag_n09_k
+            # from here https://arxiv.org/pdf/1711.08805.pdf
+            c89_ak_vvv = arr["c89_ak_2m"] + 0.01 * arr["c89_ejk_2m"]
+            c89_aj_vvv = arr["c89_aj_2m"] - 0.065 * arr["c89_ejk_2m"]
+            c89_ah_vvv = arr["c89_ah_2m"] + 0.032 * (arr["c89_aj_2m"] - arr["c89_ah_2m"])
 
+            c89_jk_color = (arr["mag_j"] - c89_aj_vvv) - (arr["mag_k"] - c89_ak_vvv)
+            c89_hk_color = (arr["mag_h"] - c89_ah_vvv) - (arr["mag_k"] - c89_ak_vvv)
+            c89_jh_color = (arr["mag_j"] - c89_aj_vvv) - (arr["mag_h"] - c89_ah_vvv)
+
+            n09_ak_vvv = arr["n09_ak_2m"] + 0.01 * arr["n09_ejk_2m"]
+            n09_aj_vvv = arr["n09_aj_2m"] - 0.065 * arr["n09_ejk_2m"]
+            n09_ah_vvv = arr["n09_ah_2m"] + 0.032 * (arr["n09_aj_2m"] - arr["n09_ah_2m"])
+
+            n09_jk_color = (arr["mag_j"] - n09_aj_vvv) - (arr["mag_k"] - n09_ak_vvv)
+            n09_hk_color = (arr["mag_h"] - n09_ah_vvv) - (arr["mag_k"] - n09_ak_vvv)
+            n09_jh_color = (arr["mag_j"] - n09_aj_vvv) - (arr["mag_h"] - n09_ah_vvv)
 
             columns = [
-                ('vvv_c89_aj', vvv_c89_aj),
-                ('vvv_c89_ak', vvv_c89_ak),
-                ('vvv_n09_aj', vvv_n09_aj),
-                ('vvv_n09_ak', vvv_n09_ak),
-
-                ('amag_c89_j', amag_c89_j),
-                ('amag_c89_k', amag_c89_k),
-                ('amag_n09_j', amag_n09_j),
-                ('amag_n09_k', amag_n09_k),
-
-                ('color_n09_jk', color_n09_jk),
-                ('color_n09_jk', color_n09_jk)]
+                ('c89_ak_vvv', c89_ak_vvv),
+                ('c89_aj_vvv', c89_aj_vvv),
+                ('c89_ah_vvv', c89_ah_vvv),
+                ('c89_jk_color', c89_jk_color),
+                ('c89_hk_color', c89_hk_color),
+                ('c89_jh_color', c89_jh_color),
+                ('n09_ak_vvv', n09_ak_vvv),
+                ('n09_aj_vvv', n09_aj_vvv),
+                ('n09_ah_vvv', n09_ah_vvv),
+                ('n09_jk_color', n09_jk_color),
+                ('n09_hk_color', n09_hk_color),
+                ('n09_jh_color', n09_jh_color)]
 
             arr = add_columns(arr, columns, append=True)
-
-            arr = arr[order]
-
+#~
+            #~ arr = arr[order]
+#~
             tile.store_npy_file(arr)
 
 
