@@ -23,7 +23,9 @@ import pandas as pd
 import feets
 
 from ..models import LightCurves
+
 from ..lib.mppandas import mp_apply, CORES
+from ..lib.beamc import add_columns
 
 
 # =============================================================================
@@ -59,11 +61,15 @@ class Extractor(object):
         mag_err = src_obs["pwp_stack_src_mag_err3"]
 
         sort_mask = time.argsort()
-        data = (mag[sort_mask], time[sort_mask], mag_err[sort_mask])
+        data = {
+            "magnitude": mag[sort_mask],
+            "time": time[sort_mask],
+            "error": mag_err[sort_mask]}
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            result = dict(zip(*fs.extract_one(data)))
+            features, values = fs.extract(**data)
+            result = dict(zip(features, values))
 
         return pd.Series(result)
 
@@ -197,6 +203,24 @@ class FeaturesExtractor(run.Step):
             features = None
         return features
 
+    def add_color(self, lc, features):
+        colors = lc.tile.load_npy_file()[[
+            'id', 'c89_jk_color', 'c89_hk_color', 'c89_jh_color',
+            'n09_jk_color', 'n09_hk_color', 'n09_jh_color']]
+
+        idxs = np.where(np.in1d(colors["id"], features["id"]))[0]
+        colors = colors[idxs]
+        columns = [
+            ('c89_jk_color', colors['c89_jk_color']),
+            ('c89_hk_color', colors['c89_hk_color']),
+            ('c89_jh_color', colors['c89_jh_color']),
+            ('n09_jk_color', colors['n09_jk_color']),
+            ('n09_hk_color', colors['n09_hk_color']),
+            ('n09_jh_color', colors['n09_jh_color'])]
+
+        features_colors = add_columns(features, columns, append=True)
+        return features_colors
+
     def process(self, lc):
         print("Selecting sources...")
         all_sources = self.get_sources(lc)
@@ -240,7 +264,7 @@ class FeaturesExtractor(run.Step):
         del features
 
         if len(all_obs) == 0:
-            lc.features = self.combine_cache(lc)
+            lc.features = self.add_color(lc, self.combine_cache(lc))
 
         lc.tile.ready = True
         self.session.commit()

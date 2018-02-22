@@ -72,7 +72,9 @@ STEPS = [
 
     "carpyncho.steps.create_lc.CreateLightCurves",
 
-    "carpyncho.steps.features_extractor.FeaturesExtractor"
+    "carpyncho.steps.features_extractor.FeaturesExtractor",
+
+    "carpyncho.steps.sample.Sample",
 ]
 
 
@@ -121,6 +123,8 @@ NPY_PAWPRINTS_DIR = os.path.join(DATA_PATH, "npy_pawprints")
 MATCHS_DIR = os.path.join(DATA_PATH, "matchs")
 
 LC_DIR = os.path.join(DATA_PATH, "light_curves")
+
+SAMPLES_DIR = os.path.join(DATA_PATH, "samples")
 
 DEBUG = DEBUG_PROCESS
 

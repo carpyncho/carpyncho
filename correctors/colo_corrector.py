@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from corral import db
 from carpyncho.models import *
+import sys;sys.exit()
 
 from carpyncho.lib.beamc import (
     extinction, knnfix, add_columns, MIN_BOX_SIZE, SERVER_SOURCES_LIMIT)
