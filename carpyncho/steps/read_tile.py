@@ -11,7 +11,11 @@ from corral import run
 
 import numpy as np
 
+from PyAstronomy import pyasl
+
 from ..models import Tile
+
+from carpyncho.lib.beamc import add_columns
 
 
 # =============================================================================
@@ -26,12 +30,14 @@ SOURCE_DTYPE = {
         'ra_h', 'dec_h', 'ra_j',
         'dec_j', 'ra_k', 'dec_k',
         "mag_h", "mag_j", "mag_k",
-        "mag_err_h", "mag_err_j", "mag_err_k"],
+        "mag_err_h", "mag_err_j", "mag_err_k",
+        "scls_h", "scls_j", "scls_k"],
     'formats': [
         float, float, float,
         float, float, float,
         float, float, float,
-        float, float, float]
+        float, float, float,
+        int, int, int]
 }
 
 USECOLS = list(range(len(SOURCE_DTYPE["names"])))
@@ -61,41 +67,50 @@ class ReadTile(run.Step):
         filtered = arr[flt]
         return filtered, len(filtered)
 
-    def add_columns(self, odata, size, tile_name, dtypes):
+    def add_columns(self, npy_arr, tile):
         """Add id to existing recarray
 
         """
+        size = len(npy_arr)
 
-        tile_name = Tile.ZONES[tile_name[0].lower()] + tile_name[1:]
+        tile_name = Tile.ZONES[tile.name[0].lower()] + tile.name[1:]
 
+        # create ids
         def get_id(order):
             order = str(order).rjust(10, "0")
             return int(tile_name + order)
-
-        # create ids
         ids = np.fromiter(
             (get_id(idx + 1) for idx in range(size)), dtype=np.int64)
 
-        dtype = copy.deepcopy(dtypes)
-        dtype["names"].insert(0, "id")
-        dtype["formats"].insert(0, np.int64)
+        # calculate the hjds
+        mjd_h, mjd_j, mjd_k = tile.epochs
 
-        # create an empty array and copy the values
-        data = np.empty(len(odata), dtype=dtype)
-        for name in data.dtype.names:
-            if name == "id":
-                data[name] = ids
-            else:
-                data[name] = odata[name]
-        return data
+        gen_h = (pyasl.helio_jd(mjd_h, ra, dec)
+                 for ra, dec in zip(npy_arr["ra_h"], npy_arr["dec_h"]))
+        hjd_h = np.fromiter(gen_h, dtype=float)
+
+        gen_j = (pyasl.helio_jd(mjd_j, ra, dec)
+                 for ra, dec in zip(npy_arr["ra_j"], npy_arr["dec_j"]))
+        hjd_j = np.fromiter(gen_j, dtype=float)
+
+        gen_k = (pyasl.helio_jd(mjd_k, ra, dec)
+                 for ra, dec in zip(npy_arr["ra_k"], npy_arr["dec_k"]))
+        hjd_k = np.fromiter(gen_k, dtype=float)
+
+        columns = [
+            ("id", ids),
+            ("hjd_h", hjd_h),
+            ("hjd_j", hjd_j),
+            ("hjd_k", hjd_k)]
+        return add_columns(npy_arr, columns)
 
     def process(self, tile):
         with open(tile.raw_file_path) as fp:
             oarr, size = self.read_dat(fp)
-        arr = self.add_columns(oarr, size, tile.name, SOURCE_DTYPE)
+        arr = self.add_columns(oarr, tile)
 
         tile.store_npy_file(arr)
-        tile.size = size
+        tile.size = len(arr)
         tile.status = "ready-to-tag"
 
         self.save(tile)
