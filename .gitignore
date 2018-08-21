@@ -108,3 +108,5 @@ carpyncho/bin/ogle3/ogleIII.pkl
 carpyncho/bin/ogle3/ogleIII_all.csv
 example_data/
 carpyncho/lib/*.pyc
+production_data/
+production_data
