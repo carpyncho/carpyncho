@@ -113,5 +113,5 @@ class Sample(run.Step):
                 os.makedirs(outdir)
 
             output = os.path.join(outdir, lc.tile.name + ".npy")
-            if not os.path.exists(output):
+            if True or not os.path.exists(output):
                 self.sample(lc, output, **conf)
