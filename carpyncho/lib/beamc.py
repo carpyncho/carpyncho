@@ -46,6 +46,8 @@ http://mill.astro.puc.cl/BEAM/calculator.php
 
 from numbers import Number
 
+from joblib import Parallel, delayed
+
 import requests
 
 import numpy as np
@@ -252,7 +254,10 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
         ('beamc_l', float), ('beamc_b', float), ('beamc_box', float),
         ('beamc_ext_law', int), ('beamc_ejk', float),
         ('beamc_ak', float), ('beamc_err_ejk', float)]
-    beamc_data = np.loadtxt(StringIO(response.text), dtype=dtype)
+    try:
+        beamc_data = np.loadtxt(StringIO(response.text), dtype=dtype)
+    except:
+        import ipdb; ipdb.set_trace()
     if beamc_data.ndim == 0:
         beamc_data = beamc_data.flatten()
 
@@ -284,7 +289,21 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
     return output
 
 
-def knnfix(data, to_replace, knn, frame="fk5", **match_coords_kwargs):
+# =============================================================================
+# KNN FIX
+# =============================================================================
+
+def _match2d(nthneighbor, to_search, clean_cat, match_coords_kwargs):
+    dx, d2d = match_coordinates_sky(to_search, clean_cat,
+                                    nthneighbor=nthneighbor,
+                                    **match_coords_kwargs)[:-1]
+    return {"kidx": dx, "kdis": d2d.value}
+
+
+def knnfix(
+    data, to_replace, knn,
+    frame="fk5", n_jobs=-1, **match_coords_kwargs
+):
     """Search for the k nearest neightborgs for the sources included in
     the to_replace array and calculate weighted mean of the ak and ejk values.
 
@@ -317,16 +336,18 @@ def knnfix(data, to_replace, knn, frame="fk5", **match_coords_kwargs):
                                               catalog_ak[clean_cat_mask],
                                               catalog_ejk[clean_cat_mask])
 
+    with Parallel(n_jobs=n_jobs) as jobs:
+        results = jobs(
+            delayed(_match2d)(nbg, to_search, clean_cat, match_coords_kwargs)
+            for nbg in range(1, knn+1))
+
     kidx, kdis = None, None
-    for nthneighbor in range(1, knn+1):
-        dx, d2d = match_coordinates_sky(to_search, clean_cat,
-                                        nthneighbor=nthneighbor,
-                                        **match_coords_kwargs)[:-1]
+    for res in results:
         if kidx is None:
-            kidx, kdis = dx, d2d.value
+            kidx, kdis = res["kidx"], res["kdis"]
         else:
-            kidx = np.vstack((kidx, dx))
-            kdis = np.vstack((kdis, d2d.value))
+            kidx = np.vstack((kidx, res["kidx"]))
+            kdis = np.vstack((kdis, res["kdis"]))
 
     # change the zeros by a epsilon
     kdis[kdis == 0] = EPS

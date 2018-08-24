@@ -64,6 +64,7 @@ LOADER = "carpyncho.load.Loader"
 STEPS = [
     "carpyncho.steps.read_tile.ReadTile",
     "carpyncho.steps.tag_tile.OGLE3TagTile",
+    "carpyncho.steps.unred.Unred",
 
     "carpyncho.steps.read_pawprint_stack.ReadPawprintStack",
 
@@ -101,6 +102,7 @@ MIGRATIONS_SETTINGS = os.path.join(PATH, "migrations", "alembic.ini")
 
 try:
     from carpyncho.local_settings import *  # noqa
+    DEBUG_PROCESS = False
 except ImportError:
     print "local_settings.py not found"
     DEBUG_PROCESS = True

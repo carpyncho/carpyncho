@@ -78,6 +78,86 @@ class Extractor(object):
 # STEP
 # =============================================================================
 
+CMP = ('id',
+ 'ogle3_type',
+ 'cnt',
+ 'Amplitude',
+ 'AndersonDarling',
+ 'Autocor_length',
+ 'Beyond1Std',
+ 'CAR_mean',
+ 'CAR_sigma',
+ 'CAR_tau',
+ 'Con',
+ 'Eta_e',
+ 'FluxPercentileRatioMid20',
+ 'FluxPercentileRatioMid35',
+ 'FluxPercentileRatioMid50',
+ 'FluxPercentileRatioMid65',
+ 'FluxPercentileRatioMid80',
+ 'Freq1_harmonics_amplitude_0',
+ 'Freq1_harmonics_amplitude_1',
+ 'Freq1_harmonics_amplitude_2',
+ 'Freq1_harmonics_amplitude_3',
+ 'Freq1_harmonics_rel_phase_0',
+ 'Freq1_harmonics_rel_phase_1',
+ 'Freq1_harmonics_rel_phase_2',
+ 'Freq1_harmonics_rel_phase_3',
+ 'Freq2_harmonics_amplitude_0',
+ 'Freq2_harmonics_amplitude_1',
+ 'Freq2_harmonics_amplitude_2',
+ 'Freq2_harmonics_amplitude_3',
+ 'Freq2_harmonics_rel_phase_0',
+ 'Freq2_harmonics_rel_phase_1',
+ 'Freq2_harmonics_rel_phase_2',
+ 'Freq2_harmonics_rel_phase_3',
+ 'Freq3_harmonics_amplitude_0',
+ 'Freq3_harmonics_amplitude_1',
+ 'Freq3_harmonics_amplitude_2',
+ 'Freq3_harmonics_amplitude_3',
+ 'Freq3_harmonics_rel_phase_0',
+ 'Freq3_harmonics_rel_phase_1',
+ 'Freq3_harmonics_rel_phase_2',
+ 'Freq3_harmonics_rel_phase_3',
+ 'Gskew',
+ 'LinearTrend',
+ 'MaxSlope',
+ 'Mean',
+ 'Meanvariance',
+ 'MedianAbsDev',
+ 'MedianBRP',
+ 'PairSlopeTrend',
+ 'PercentAmplitude',
+ 'PercentDifferenceFluxPercentile',
+ 'PeriodLS',
+ 'Period_fit',
+ 'Psi_CS',
+ 'Psi_eta',
+ 'Q31',
+ 'Rcs',
+ 'Skew',
+ 'SmallKurtosis',
+ 'Std',
+ 'StetsonK',
+ 'c89_jk_color',
+ 'c89_hk_color',
+ 'c89_jh_color',
+ 'n09_jk_color',
+ 'n09_hk_color',
+ 'n09_jh_color',
+ 'c89_m2',
+ 'c89_m4',
+ 'c89_c3',
+ 'n09_m2',
+ 'n09_m4',
+ 'n09_c3',
+ 'AmplitudeH',
+ 'AmplitudeJ',
+ 'ppmb',
+ 'scls_h',
+ 'scls_j',
+ 'scls_k')
+
 class FeaturesExtractor(run.Step):
     """Creates a features tables for every sources in a given Tile
 
@@ -89,7 +169,7 @@ class FeaturesExtractor(run.Step):
         model.tile.has(ready=False)]
     groups = ["fe"]
 
-    min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
+    min_observation = conf.settings.get("FE_MIN_OBSERVATION", 1)
     chunk_size = conf.settings.get("FE_CHUNK_SIZE", CORES * 10)
     write_limit = conf.settings.get("FE_WRITE_LIMIT", 1000)
     mp_cores = conf.settings.get("FE_MP_CORES", CORES)
@@ -266,6 +346,8 @@ class FeaturesExtractor(run.Step):
         if len(all_obs) == 0:
             lc.features = self.add_color(lc, self.combine_cache(lc))
 
-        lc.tile.ready = True
-        self.session.commit()
-        self.del_cached_ids(lc)
+        import ipdb; ipdb.set_trace()
+
+        #~ lc.tile.ready = True
+        #~ self.session.commit()
+        #~ self.del_cached_ids(lc)

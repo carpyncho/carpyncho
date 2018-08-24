@@ -16,6 +16,8 @@ import numpy as np
 
 import pandas as pd
 
+from sqlalchemy.orm import validates
+
 from corral import db
 from corral.conf import settings
 
@@ -56,12 +58,12 @@ class Tile(db.Model):
         "d": "4"
     }
 
-    statuses = db.Enum(
+    statuses = (
         "raw",
         "ready-to-tag",
+        "ready-to-unred",
         "ready-to-match",
-        "ready-to-extract-features",
-        name="tile_statuses")
+        "ready-to-extract-features")
 
     id = db.Column(db.Integer, db.Sequence('tile_id_seq'), primary_key=True)
     name = db.Column(db.String(255), nullable=False, index=True, unique=True)
@@ -70,7 +72,7 @@ class Tile(db.Model):
     _npy_filename = db.Column("npy_filename", db.Text)
 
     size = db.Column(db.Integer, nullable=True)
-    status = db.Column(statuses, default="raw")
+    status = db.Column(db.String(255), default="raw")
 
     ogle3_tagged_number = db.Column(db.Integer, nullable=True)
 
@@ -78,6 +80,12 @@ class Tile(db.Model):
 
     def __repr__(self):
         return "<Tile '{}'>".format(self.name)
+
+    @validates('status')
+    def _validate_status(self, key, status):
+        if status not in self.statuses:
+            raise ValueError("invalid status: " + status)
+        return status
 
     @property
     def epochs(self):

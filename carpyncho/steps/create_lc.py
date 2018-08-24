@@ -70,6 +70,8 @@ class CreateLightCurves(run.Step):
         if obs is not None:
             lc.observations = obs
 
+        tile.status = "ready-to-extract-features"
+
         yield lc
         yield tile
 

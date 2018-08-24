@@ -87,6 +87,6 @@ class OGLE3TagTile(run.Step):
 
         tile.store_npy_file(tile_data)
         tile.ogle3_tagged_number = len(tile_idxs)
-        tile.status = "ready-to-match"
+        tile.status = "ready-to-unred"
         yield tile
         self.session.commit()

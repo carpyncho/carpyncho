@@ -135,7 +135,7 @@ class LSTile(cli.BaseCommand):
     def setup(self):
         self.parser.add_argument(
             "-st", "--status", dest="status", action="store",
-            choices=Tile.statuses.enums, nargs="+",
+            choices=Tile.statuses, nargs="+",
             help="Show only the given status")
 
     def handle(self, status):
