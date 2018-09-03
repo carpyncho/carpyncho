@@ -216,33 +216,26 @@ class LSSync(cli.BaseCommand):
         print("Count: {}".format(cnt))
 
 
-class EnableFeatureExtraction(cli.BaseCommand):
-    """Set the status of the given tile to 'ready-to-extract-features'"""
+class SetTileStatus(cli.BaseCommand):
+    """Set the status of the given tile"""
 
     options = {
-        "title": "enable-fe"}
+        "title": "set-tile-status"}
 
     def setup(self):
         self.parser.add_argument(
             "tnames", action="store", nargs="+",
             help="Name of the tile to change the status")
+        self.parser.add_argument(
+            "--status", action="store", dest="status", choices=Tile.statuses,
+            help="New status")
 
-    def handle(self, tnames):
+    def handle(self, tnames, status):
         log2critcal()
         with db.session_scope() as session:
-            for tname in tnames:
-                tile = session.query(Tile).filter(Tile.name == tname).first()
-                if tile and tile.lcurves and tile.status == "ready-to-match":
-                    tile.status = "ready-to-extract-features"
-                    print("[SUCCESS] Tile '{}'".format(tname))
-                elif tile and tile.lcurves and tile.status != "ready-to-match":
-                    print("[FAIL] Tile '{}' must be 'ready-to-match'".format(tname))
-                elif tile:
-                    print("[FAIL] Tile '{}' must has a lightcurve".format(tname))
-                else:
-                    query = session.query(Tile.name)
-                    tryes = ", ".join([e[0] for e in query])
-                    print("[FAIL] Tile '{}' not found. Try: {}".format(tname, tryes))
+            for tile in session.query(Tile).filter(Tile.name.in_(tnames)):
+                tile.status = status
+                print("[SUCCESS] Tile '{}' -> {}".format(tile.name, status))
 
 
 class SampleFeatures(cli.BaseCommand):

@@ -63,7 +63,8 @@ class Tile(db.Model):
         "ready-to-tag",
         "ready-to-unred",
         "ready-to-match",
-        "ready-to-extract-features")
+        "ready-to-extract-features",
+        "locked")
 
     id = db.Column(db.Integer, db.Sequence('tile_id_seq'), primary_key=True)
     name = db.Column(db.String(255), nullable=False, index=True, unique=True)

@@ -130,7 +130,7 @@ class Unred(run.Step):
             else:
                 cardelli = np.append(cardelli, proc.cardelli)
                 nishiyama = np.append(nishiyama, proc.nishiyama)
-
+        import ipdb; ipdb.set_trace()
         print("Fixing missing...")
         cardelli = fix_missing(cardelli)
         nishiyama = fix_missing(nishiyama)
