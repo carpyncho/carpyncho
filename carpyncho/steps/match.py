@@ -36,7 +36,9 @@ def iter_matchs(tile_name, tile_id, pawprint_stack_id, band,
         yield row
 
 
-def match(tile_name, tile_id, pawprint_stack_id, band, tile_data, pwp_data):
+def match(pxt_id, tile_name, tile_id, pawprint_stack_id, band, tile_data, pwp_path):
+    pwp_data = np.load(pwp_path)
+
     # create dtype
     dtype = {
         "names": (
@@ -60,7 +62,7 @@ def match(tile_name, tile_id, pawprint_stack_id, band, tile_data, pwp_data):
         pwp_ra=pwp_ra, pwp_dec=pwp_dec)
 
     arr = np.fromiter(matchs, dtype=dtype)
-    return arr
+    return arr, pxt_id
 
 
 # =============================================================================
@@ -89,27 +91,38 @@ class Match(run.Step):
     def read_arrs(self, chunk):
         tile_buff, reads = {}, []
         for pxt in chunk:
-            print("Reading {}...".format(pxt))
+
             if pxt.tile.name not in tile_buff:
+                print("Reading {}...".format(pxt.tile))
                 tile_buff[pxt.tile.name] = pxt.tile.load_npy_file()
+
             reads.append({
+                "pxt_id": pxt.id,
                 "tile_name": pxt.tile.name,
                 "tile_id": pxt.tile.id,
                 "pawprint_stack_id": pxt.pawprint_stack.id,
                 "band": pxt.pawprint_stack.band,
                 "tile_data": tile_buff[pxt.tile.name],
-                "pwp_data":  pxt.pawprint_stack.load_npy_file()})
+                "pwp_path":  pxt.pawprint_stack.npy_file_path})
         return reads
 
     def process(self, chunk):
         chunk_arrs = self.read_arrs(chunk)
         with Parallel(n_jobs=CPUS) as jobs:
             matches = jobs(delayed(match)(**arrs) for arrs in chunk_arrs)
-        import sys;sys.exit()
-            #~ pxt.matched_number = len(arr)
-    #~ pxt.store_npy_file(arr)
-    #~ pxt.status = "matched"
-#~
-    #~ yield pxt
-#~
-    #~ self.session.commit()
+        if len(chunk) != len(matches):
+            raise ValueError("We have {} chunks but {} matches".format(
+                len(chunk), len(matches)))
+
+        for pxt, mtch in zip(chunk, matches):
+            arr, pxt_id = mtch
+            if pxt.id != pxt_id:
+                raise ValueError("Pxt ID is {} but array ID is {}".format(
+                    pxt.id, pxt_id))
+
+            pxt.matched_number = len(arr)
+            pxt.store_npy_file(arr)
+            pxt.status = "matched"
+            yield pxt
+
+        self.session.commit()

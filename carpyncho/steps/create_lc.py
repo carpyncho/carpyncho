@@ -7,6 +7,8 @@
 
 import numpy as np
 
+from joblib import Parallel, delayed, cpu_count
+
 from corral import run
 
 from ..models import Tile, PawprintStackXTile, LightCurves
@@ -17,8 +19,33 @@ from ..models import Tile, PawprintStackXTile, LightCurves
 # =============================================================================
 
 COLUMNS = [
-    "bm_src_id", "pwp_stack_src_hjd",
+    "bm_src_id", "pwp_stack_src_id", "pwp_stack_src_hjd",
     "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
+
+
+S_COLUMNS = [
+    "bm_src_id", "pwp_id", "pwp_stack_src_id", "pwp_stack_src_hjd",
+    "pwp_stack_src_mag3", "pwp_stack_src_mag_err3"]
+
+CPUS = cpu_count()
+
+
+# =============================================================================
+# FUNCTION
+# =============================================================================
+
+def read_pxt(pxt_path, pwp_id, total, idx, tile_name):
+    print("Processing pxt {} of {} (Tile {})".format(idx, total, tile_name))
+    arr = np.load(pxt_path)[COLUMNS]
+
+    ids = np.empty(len(arr)).astype(int)
+    ids[:] = int(pwp_id)
+
+    extra_cols = [("pwp_id", ids, )]
+
+    arr = beamc.add_columns(arr, extra_cols)[S_COLUMNS]
+
+    return ar
 
 
 # =============================================================================
@@ -58,18 +85,17 @@ class CreateLightCurves(run.Step):
         # new light curve
         lc = LightCurves(tile=tile)
 
-        obs, total = None, pxts.count()
-        for idx, pxt in enumerate(pxts):
-            print("Processing pxt {} of {} (Tile {})".format(idx, total, tile.name))
-            data = pxt.load_npy_file()[COLUMNS]
-            if obs is None:
-                obs = data
-            else:
-                obs = np.concatenate((obs, data))
+        # variables for joblib
+        tile_name, total = tile.name, pxts.count()
+        pxts_paths_ids = [
+            (pxt.npy_file_path, pxt.pawprint_stack_id) for pxt in pxts]
 
-        if obs is not None:
-            lc.observations = obs
+        with Parallel(n_jobs=CPUS) as jobs:
+            data = jobs(
+                delayed(read_pxt)(pxt[0], pxt[1], total, idx, tile_name)
+                for idx, pxt in enumerate(pxts_paths_ids))
 
+        lc.observations = np.concatenate(data)
         tile.status = "ready-to-extract-features"
 
         yield lc
