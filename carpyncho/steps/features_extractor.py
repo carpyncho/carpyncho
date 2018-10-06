@@ -309,6 +309,64 @@ class FeaturesExtractor(run.Step):
             ("scls_k", sources["scls_k"]),
         ]
         return add_columns(feats, columns, append=True)
+    
+    def add_pseudo_colors_and_amplitude(self, feats, sources):
+        sources = sources[np.in1d(sources["id"], feats["id"])]
+
+        # CARDELLI
+        c89_mk = sources["mag_k"] - sources["c89_ak_vvv"]
+        c89_mj = sources["mag_j"] - sources["c89_aj_vvv"]
+        c89_mh = sources["mag_h"] - sources["c89_ah_vvv"]
+
+        # magnitudes
+        c89_c_m2 = sources["c89_ah_vvv"] / (
+            sources["c89_aj_vvv"] - sources["c89_ak_vvv"])
+        c89_m2 = c89_mh - c89_c_m2 * (c89_mj - c89_mk)
+
+        c89_c_m4 = sources["c89_ak_vvv"] / (
+            sources["c89_aj_vvv"] - sources["c89_ah_vvv"])
+        c89_m4 = c89_mk - c89_c_m4 * (c89_mj - c89_mh)
+
+        # color
+        c89_c_c3 = (
+            (sources["c89_aj_vvv"] - sources["c89_ah_vvv"]) /
+            (sources["c89_ah_vvv"] - sources["c89_ak_vvv"]))
+        c89_c3 = (c89_mj - c89_mh) - c89_c_c3 * (c89_mh - c89_mk)
+
+        # NISHIYAMA
+        n09_mk = sources["mag_k"] - sources["n09_ak_vvv"]
+        n09_mj = sources["mag_j"] - sources["n09_aj_vvv"]
+        n09_mh = sources["mag_h"] - sources["n09_ah_vvv"]
+
+        n09_c_m2 = sources["n09_ah_vvv"] / (
+            sources["n09_aj_vvv"] - sources["n09_ak_vvv"])
+        n09_m2 = n09_mh - n09_c_m2 * (n09_mj - n09_mk)
+
+        n09_c_m4 = sources["n09_ak_vvv"] / (
+            sources["n09_aj_vvv"] - sources["n09_ah_vvv"])
+        n09_m4 = n09_mk - n09_c_m4 * (n09_mj - n09_mh)
+
+        # color
+        n09_c_c3 = (
+            (sources["n09_aj_vvv"] - sources["n09_ah_vvv"]) /
+            (sources["n09_ah_vvv"] - sources["n09_ak_vvv"]))
+        n09_c3 = (n09_mj - n09_mh) - n09_c_c3 * (n09_mh - n09_mk)
+
+        # AMPLITUDES
+        ampH = .11 + 1.65 * (feats["Amplitude"] - .18)
+        ampJ = -.02  + 3.6 * (feats["Amplitude"] - .18)
+
+        columns = [
+            ('c89_m2', c89_m2),
+            ('c89_m4', c89_m4),
+            ('c89_c3', c89_c3),
+            ('n09_m2', n09_m2),
+            ('n09_m4', n09_m4),
+            ('n09_c3', n09_c3),
+            ('AmplitudeH', ampH),
+            ('AmplitudeJ', ampJ)]
+
+        return add_columns(feats, columns, append=True)
 
     def process(self, lc):
         print("Selecting sources...")
@@ -358,6 +416,7 @@ class FeaturesExtractor(run.Step):
             feats = self.combine_cache(lc)
             feats = self.add_color(feats, sources)
             feats = self.add_stellar_classes(feats, sources)
+            feats = self.add_pseudo_colors_and_amplitude(feats, sources)
             lc.features = feats
 
         import ipdb; ipdb.set_trace()
