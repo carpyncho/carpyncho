@@ -283,8 +283,8 @@ class FeaturesExtractor(run.Step):
             features = None
         return features
 
-    def add_color(self, lc, features):
-        colors = lc.tile.load_npy_file()[[
+    def add_color(self, features, sources):
+        colors = sources[[
             'id', 'c89_jk_color', 'c89_hk_color', 'c89_jh_color',
             'n09_jk_color', 'n09_hk_color', 'n09_jh_color']]
 
@@ -300,6 +300,15 @@ class FeaturesExtractor(run.Step):
 
         features_colors = add_columns(features, columns, append=True)
         return features_colors
+    
+    def add_stellar_classes(self, feats, sources):
+        sources = sources[np.in1d(sources["id"], feats["id"])]
+        columns = [
+            ("scls_h", sources["scls_h"]),
+            ("scls_j", sources["scls_j"]),
+            ("scls_k", sources["scls_k"]),
+        ]
+        return add_columns(feats, columns, append=True)
 
     def process(self, lc):
         print("Selecting sources...")
@@ -344,7 +353,12 @@ class FeaturesExtractor(run.Step):
         del features
 
         if len(all_obs) == 0:
-            lc.features = self.add_color(lc, self.combine_cache(lc))
+            sources = lc.tile.load_npy_file()
+            
+            feats = self.combine_cache(lc)
+            feats = self.add_color(feats, sources)
+            feats = self.add_stellar_classes(feats, sources)
+            lc.features = feats
 
         import ipdb; ipdb.set_trace()
 
