@@ -78,86 +78,6 @@ class Extractor(object):
 # STEP
 # =============================================================================
 
-CMP = ('id',
- 'ogle3_type',
- 'cnt',
- 'Amplitude',
- 'AndersonDarling',
- 'Autocor_length',
- 'Beyond1Std',
- 'CAR_mean',
- 'CAR_sigma',
- 'CAR_tau',
- 'Con',
- 'Eta_e',
- 'FluxPercentileRatioMid20',
- 'FluxPercentileRatioMid35',
- 'FluxPercentileRatioMid50',
- 'FluxPercentileRatioMid65',
- 'FluxPercentileRatioMid80',
- 'Freq1_harmonics_amplitude_0',
- 'Freq1_harmonics_amplitude_1',
- 'Freq1_harmonics_amplitude_2',
- 'Freq1_harmonics_amplitude_3',
- 'Freq1_harmonics_rel_phase_0',
- 'Freq1_harmonics_rel_phase_1',
- 'Freq1_harmonics_rel_phase_2',
- 'Freq1_harmonics_rel_phase_3',
- 'Freq2_harmonics_amplitude_0',
- 'Freq2_harmonics_amplitude_1',
- 'Freq2_harmonics_amplitude_2',
- 'Freq2_harmonics_amplitude_3',
- 'Freq2_harmonics_rel_phase_0',
- 'Freq2_harmonics_rel_phase_1',
- 'Freq2_harmonics_rel_phase_2',
- 'Freq2_harmonics_rel_phase_3',
- 'Freq3_harmonics_amplitude_0',
- 'Freq3_harmonics_amplitude_1',
- 'Freq3_harmonics_amplitude_2',
- 'Freq3_harmonics_amplitude_3',
- 'Freq3_harmonics_rel_phase_0',
- 'Freq3_harmonics_rel_phase_1',
- 'Freq3_harmonics_rel_phase_2',
- 'Freq3_harmonics_rel_phase_3',
- 'Gskew',
- 'LinearTrend',
- 'MaxSlope',
- 'Mean',
- 'Meanvariance',
- 'MedianAbsDev',
- 'MedianBRP',
- 'PairSlopeTrend',
- 'PercentAmplitude',
- 'PercentDifferenceFluxPercentile',
- 'PeriodLS',
- 'Period_fit',
- 'Psi_CS',
- 'Psi_eta',
- 'Q31',
- 'Rcs',
- 'Skew',
- 'SmallKurtosis',
- 'Std',
- 'StetsonK',
- 'c89_jk_color',
- 'c89_hk_color',
- 'c89_jh_color',
- 'n09_jk_color',
- 'n09_hk_color',
- 'n09_jh_color',
- 'c89_m2',
- 'c89_m4',
- 'c89_c3',
- 'n09_m2',
- 'n09_m4',
- 'n09_c3',
- 'AmplitudeH',
- 'AmplitudeJ',
- 'ppmb',
- 'scls_h',
- 'scls_j',
- 'scls_k')
-
 class FeaturesExtractor(run.Step):
     """Creates a features tables for every sources in a given Tile
 
@@ -169,7 +89,7 @@ class FeaturesExtractor(run.Step):
         model.tile.has(ready=False)]
     groups = ["fe"]
 
-    min_observation = conf.settings.get("FE_MIN_OBSERVATION", 1)
+    min_observation = conf.settings.get("FE_MIN_OBSERVATION", 30)
     chunk_size = conf.settings.get("FE_CHUNK_SIZE", CORES * 10)
     write_limit = conf.settings.get("FE_WRITE_LIMIT", 1000)
     mp_cores = conf.settings.get("FE_MP_CORES", CORES)
@@ -300,7 +220,7 @@ class FeaturesExtractor(run.Step):
 
         features_colors = add_columns(features, columns, append=True)
         return features_colors
-    
+
     def add_stellar_classes(self, feats, sources):
         sources = sources[np.in1d(sources["id"], feats["id"])]
         columns = [
@@ -309,7 +229,7 @@ class FeaturesExtractor(run.Step):
             ("scls_k", sources["scls_k"]),
         ]
         return add_columns(feats, columns, append=True)
-    
+
     def add_pseudo_colors_and_amplitude(self, feats, sources):
         sources = sources[np.in1d(sources["id"], feats["id"])]
 
@@ -364,8 +284,39 @@ class FeaturesExtractor(run.Step):
             ('n09_m4', n09_m4),
             ('n09_c3', n09_c3),
             ('AmplitudeH', ampH),
-            ('AmplitudeJ', ampJ)]
+            ('AmplitudeJ', ampJ),
+            ("AmplitudeJH", ampJ - ampH),
+            ("AmplitudeJK", ampJ - feats["Amplitude"])]
+        return add_columns(feats, columns, append=True)
 
+    def add_ppmb(self, feats, sources, obs):
+        feats_df = pd.DataFrame(feats[["id", "PeriodLS"]])
+
+        sources = pd.DataFrame(sources[["id", "hjd_h", "hjd_j", "hjd_k"]])
+        sources = sources[sources.id.isin(feats_df.id)]
+
+        obs = pd.DataFrame(
+            obs[["bm_src_id", "pwp_stack_src_mag3", 'pwp_stack_src_hjd']])
+        obs = obs[obs.bm_src_id.isin(feats_df.id)]
+        obs = obs.groupby("bm_src_id")
+        obs = obs.apply(
+            lambda g: g.sort_values("pwp_stack_src_mag3", ascending=False).head(1))
+        obs = obs[["bm_src_id", "pwp_stack_src_hjd"]]
+        df = pd.merge(
+            pd.merge(feats_df, sources, on="id"), obs, left_on="id", right_on="bm_src_id")
+
+        del feats_df, obs, sources
+
+        def _ppmb(r):
+            t0 = r.pwp_stack_src_hjd
+            mb_hjd = np.mean((r.hjd_h, r.hjd_k, r.hjd_j))
+            return np.abs(np.modf(mb_hjd  - t0)[0]) / r.PeriodLS
+
+        df["ppmb"] = df.apply(_ppmb, axis=1)
+
+        columns = [
+            ("ppmb", df.ppmb.values),
+        ]
         return add_columns(feats, columns, append=True)
 
     def process(self, lc):
@@ -375,52 +326,67 @@ class FeaturesExtractor(run.Step):
         if len(all_sources) == 0:
             yield lc
 
-        all_obs = lc.observations
-        all_obs = all_obs[np.in1d(all_obs["bm_src_id"], all_sources.id)]
+        observations = lc.observations
 
         # chunk all the sources (the rename is for free memory
-        chunks = self.chunk_it(all_sources)
-        chunkst = len(chunks)
+        if len(all_sources):
+            all_obs = observations
+            all_obs = all_obs[np.in1d(all_obs["bm_src_id"], all_sources.id)]
 
-        # free memory
-        del all_sources
+            chunks = self.chunk_it(all_sources)
+            chunkst = len(chunks)
 
-        features = None
-        for chunkn, sources in enumerate(chunks):
-            print("Chunk {}/{} START!".format(chunkn + 1, chunkst))
+            # free memory
+            del all_sources
 
-            print("Filtering observarions...")
-            obs = all_obs[np.in1d(all_obs["bm_src_id"], sources.id)]
-            all_obs = all_obs[~np.in1d(all_obs["bm_src_id"], sources.id)]
+            features = None
+            for chunkn, sources in enumerate(chunks):
+                print("Chunk {}/{} START!".format(chunkn + 1, chunkst))
 
-            extractor = Extractor(
-                fs=self.fs, obs=obs, tile_name=lc.tile.name,
-                chunkn=chunkn + 1, chunkst=chunkst)
+                print("Filtering observarions...")
+                obs = all_obs[np.in1d(all_obs["bm_src_id"], sources.id)]
+                all_obs = all_obs[~np.in1d(all_obs["bm_src_id"], sources.id)]
 
-            result = mp_apply(
-                sources, extractor, procs=self.mp_cores, chunks=self.mp_split)
-            result = self.to_recarray(result)
+                extractor = Extractor(
+                    fs=self.fs, obs=obs, tile_name=lc.tile.name,
+                    chunkn=chunkn + 1, chunkst=chunkst)
 
-            if features is None:
-                features = result
-            else:
-                features = np.append(features, result)
-            features = self.to_cache(lc, features)
+                result = mp_apply(
+                    sources, extractor, procs=self.mp_cores, chunks=self.mp_split)
+                result = self.to_recarray(result)
 
-        self.to_cache(lc, features, force=True)
-        del features
+                if features is None:
+                    features = result
+                else:
+                    features = np.append(features, result)
+                features = self.to_cache(lc, features)
+
+            self.to_cache(lc, features, force=True)
+            del features
+        else:
+            all_obs = []
 
         if len(all_obs) == 0:
             sources = lc.tile.load_npy_file()
-            
+
+            print("Combining cache")
             feats = self.combine_cache(lc)
+
+            print("Adding First-Epoch Colors")
             feats = self.add_color(feats, sources)
+
+            print("Adding Stellar Classes")
             feats = self.add_stellar_classes(feats, sources)
+
+            print("Adding Pseudo Colors and Amplitudes")
             feats = self.add_pseudo_colors_and_amplitude(feats, sources)
+
+            print("Adding Multi-Band Pseudo-Phases")
+            feats = self.add_ppmb(feats, sources, observations)
+
+            print("Saving")
             lc.features = feats
 
-        import ipdb; ipdb.set_trace()
-
-        #~ lc.tile.ready = True
-        #~ self.session.commit()
-        #~ self.del_cached_ids(lc)
+        lc.tile.ready = True
+        self.session.commit()
+        self.del_cached_ids(lc)
