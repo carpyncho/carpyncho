@@ -100,6 +100,7 @@ class ReadPawprintStack(run.Step):
 
         # read ascii table
         odata = np.genfromtxt(asciipath, PAWPRINT_DTYPE)
+        os.remove(asciipath)
         return odata, len(odata)
 
     def add_columns(self, odata, size, pwp_id, mjd, dtypes):
