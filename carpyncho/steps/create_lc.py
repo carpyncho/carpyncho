@@ -12,6 +12,7 @@ from joblib import Parallel, delayed, cpu_count
 from corral import run
 
 from ..models import Tile, PawprintStackXTile, LightCurves
+from ..lib import beamc
 
 
 # =============================================================================
@@ -45,7 +46,7 @@ def read_pxt(pxt_path, pwp_id, total, idx, tile_name):
 
     arr = beamc.add_columns(arr, extra_cols)[S_COLUMNS]
 
-    return ar
+    return arr
 
 
 # =============================================================================
