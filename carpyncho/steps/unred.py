@@ -19,16 +19,13 @@ import numpy as np
 from ..lib import matcher
 
 from ..models import Tile
+from ..lib.beamc import (
+    extinction, knnfix, add_columns, MIN_BOX_SIZE, SERVER_SOURCES_LIMIT)
 
 
 # =============================================================================
 # CONSTANTS
 # =============================================================================
-
-from ..lib.beamc import (
-    extinction, knnfix, add_columns, MIN_BOX_SIZE, SERVER_SOURCES_LIMIT)
-
-import threading as th
 
 COLUMNS = [
     "beamc_success", "beamc_ra", "beamc_dec", "beamc_ak", "beamc_ejk"]
@@ -97,12 +94,6 @@ def fix_missing(data):
 # STEP
 # =============================================================================
 
-CMP = set([
-    'n09_aj_2m', 'n09_ah_2m', 'c89_jk_color', 'n09_ak_vvv', 'n09_ejk_2m',
-    'c89_aj_vvv', 'c89_ejk_2m', 'c89_hk_color', 'c89_ah_vvv', 'c89_ah_2m',
-    'c89_ak_2m', 'c89_jh_color', 'c89_aj_2m', 'n09_ah_vvv', 'n09_aj_vvv',
-    'n09_jk_color', 'c89_ak_vvv', 'n09_ak_2m', 'n09_hk_color'])
-
 class Unred(run.Step):
     """Determine the sources existing in the tile and in the pawprint stacks
 
@@ -130,7 +121,7 @@ class Unred(run.Step):
             else:
                 cardelli = np.append(cardelli, proc.cardelli)
                 nishiyama = np.append(nishiyama, proc.nishiyama)
-        import ipdb; ipdb.set_trace()
+
         print("Fixing missing...")
         cardelli = fix_missing(cardelli)
         nishiyama = fix_missing(nishiyama)
