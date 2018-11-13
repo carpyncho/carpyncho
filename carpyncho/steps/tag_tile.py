@@ -34,7 +34,7 @@ class VSTagTile(run.Step):
     """
 
     model = Tile
-    conditions = [model.name.in_("b410 b437".split())]
+    conditions = [model.status == "ready-to-tag"]
     groups = ["preprocess", "tag"]
     production_procno = 1
 
@@ -75,12 +75,7 @@ class VSTagTile(run.Step):
         return data
 
     def process(self, tile):
-        print(tile)
         tile_data = tile.load_npy_file()
-
-        names = [n for n in tile_data.dtype.names if not n.startswith("ogle3_") and not n.startswith("vs_")]
-        tile_data = tile_data[names]
-
         tile_data = self.add_columns(tile_data)
 
         tile_ra, tile_dec = tile_data["ra_k"], tile_data["dec_k"]
@@ -99,6 +94,6 @@ class VSTagTile(run.Step):
 
         tile.store_npy_file(tile_data)
         tile.ogle3_tagged_number = len(tile_idxs)
-        #~ tile.status = "ready-to-unred"
+        tile.status = "ready-to-unred"
         yield tile
         self.session.commit()
