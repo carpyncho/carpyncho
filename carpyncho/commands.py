@@ -143,7 +143,7 @@ class LSTile(cli.BaseCommand):
 
         table = Texttable(max_width=0)
         table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        table.header(("Tile", "Status", "OGLE-3 Tags", "Size", "Ready"))
+        table.header(("Tile", "Status", "VS Tags", "Size", "Ready"))
         cnt = 0
         with db.session_scope() as session:
             query = session.query(
