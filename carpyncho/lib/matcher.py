@@ -21,7 +21,6 @@ MODE = "nearest"
 # =============================================================================
 
 def matchs(ra0, ra1, dec0, dec1, eps=MAX_MATCH, mode=MODE):
-
     nearestind1, _, match1 = coords.match_coords(
         ra0, dec0, ra1, dec1, eps=eps, mode=mode)
     nearestind0, _, match0 = coords.match_coords(

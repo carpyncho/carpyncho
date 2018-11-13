@@ -166,8 +166,8 @@ class FeaturesExtractor(run.Step):
         cnt = lc.obs_counter
         with_min_obs = pd.DataFrame(cnt[cnt["cnt"] >= self.min_observation])
 
-        # extract ids and classes of ogle
-        sources = pd.DataFrame(lc.tile.load_npy_file()[["id", "ogle3_type"]])
+        # extract ids and classes
+        sources = pd.DataFrame(lc.tile.load_npy_file()[["id", "vs_type", "ra_k", "dec_k"]])
 
         # filter with min obs
         sources = sources[sources.id.isin(with_min_obs.id)]
