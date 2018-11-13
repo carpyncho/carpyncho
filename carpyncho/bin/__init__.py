@@ -5,7 +5,7 @@ import os
 
 from corral import core
 
-from . import vvv_flx2mag, ogle3
+from . import vvv_flx2mag, catalogs
 
 
 # =============================================================================
@@ -23,5 +23,5 @@ def build():
     core.logger.info("Compiling vvv_flx2mag...")
     vvv_flx2mag.build()
 
-    core.logger.info("Extracting OGLE-3 Dataset...")
-    ogle3.build()
+    core.logger.info("Extracting Catalogs Dataset...")
+    catalogs.build()

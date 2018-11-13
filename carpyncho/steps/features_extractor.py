@@ -49,8 +49,9 @@ class Extractor(object):
         return srcs
 
     def extract(self, src_id):
-        print("[{}-chunk-{}/{}] Extracting Source {}/{}...".format(
-            self._tname, self._chunkn, self._chunkst, self._cnt, self._total))
+        #~ print("[{}-chunk-{}/{}] Extracting Source {}/{}...".format(
+            #~ self._tname, self._chunkn, self._chunkst, self._cnt, self._total))
+        print("!!! START:",  src_id)
         self._cnt += 1
 
         fs, obs = self._fs, self._obs
@@ -59,6 +60,18 @@ class Extractor(object):
         time = src_obs["pwp_stack_src_hjd"]
         mag = src_obs["pwp_stack_src_mag3"]
         mag_err = src_obs["pwp_stack_src_mag_err3"]
+
+        to_remove = np.unique(
+            np.concatenate([
+                np.argwhere(np.isinf(mag)),
+                np.argwhere(np.isinf(time)),
+                np.argwhere(np.isinf(mag_err))
+            ]).flatten())
+
+        if to_remove:
+            time = np.delete(time, to_remove)
+            mag = np.delete(mag, to_remove)
+            mag_err = np.delete(mag_err, to_remove)
 
         sort_mask = time.argsort()
         data = {
@@ -71,9 +84,11 @@ class Extractor(object):
             features, values = fs.extract(**data)
             result = dict(zip(features, values))
 
-        return pd.Series(result)
+        series = pd.Series(result)
+        print("!!! END:",  src_id)
+        return series
 
-
+# 32340000197922
 # =============================================================================
 # STEP
 # =============================================================================
@@ -350,7 +365,6 @@ class FeaturesExtractor(run.Step):
                 extractor = Extractor(
                     fs=self.fs, obs=obs, tile_name=lc.tile.name,
                     chunkn=chunkn + 1, chunkst=chunkst)
-
                 result = mp_apply(
                     sources, extractor, procs=self.mp_cores, chunks=self.mp_split)
                 result = self.to_recarray(result)
@@ -359,7 +373,7 @@ class FeaturesExtractor(run.Step):
                     features = result
                 else:
                     features = np.append(features, result)
-                features = self.to_cache(lc, features)
+                features = self.to_cache(lc, features, force=True)
 
             self.to_cache(lc, features, force=True)
             del features

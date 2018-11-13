@@ -106,6 +106,7 @@ carpyncho-dev.db
 carpyncho/bin/vvv_flx2mag/vvv_flx2mag
 carpyncho/bin/ogle3/ogleIII.pkl
 carpyncho/bin/ogle3/ogleIII_all.csv
+carpyncho/bin/catalogs/carpyncho_catalog.pkl
 example_data/
 carpyncho/lib/*.pyc
 production_data/
@@ -113,3 +114,4 @@ production_data
 corral/
 pick.sh
 Untitled.ipynb
+is0_pd
