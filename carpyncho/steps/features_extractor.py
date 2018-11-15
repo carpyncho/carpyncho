@@ -167,7 +167,8 @@ class FeaturesExtractor(run.Step):
         with_min_obs = pd.DataFrame(cnt[cnt["cnt"] >= self.min_observation])
 
         # extract ids and classes
-        sources = pd.DataFrame(lc.tile.load_npy_file()[["id", "vs_type", "ra_k", "dec_k"]])
+        sources = pd.DataFrame(lc.tile.load_npy_file()[
+            ["id", "vs_catalog", "vs_type", "ra_k", "dec_k"]])
 
         # filter with min obs
         sources = sources[sources.id.isin(with_min_obs.id)]
@@ -202,6 +203,7 @@ class FeaturesExtractor(run.Step):
         # change dtype by making a whole new array
         descr = sources.dtype.descr
         descr[2] = (descr[2][0], '|S13')
+        descr[3] = (descr[3][0], '|S13')
         descr = [(str(n), t) for n, t in descr]
         dt = np.dtype(descr)
 

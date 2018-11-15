@@ -89,6 +89,14 @@ class Tile(db.Model):
         return status
 
     @property
+    def vs_number(self):
+        return self.ogle3_tagged_number
+
+    @vs_number.setter
+    def vs_number(self, n):
+        self.ogle3_tagged_number = n
+
+    @property
     def epochs(self):
         if not hasattr(self, "_epochs"):
             with open(self.raw_file_path) as fp:

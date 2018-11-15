@@ -241,7 +241,7 @@ class SetTileStatus(cli.BaseCommand):
 class SampleFeatures(cli.BaseCommand):
     """Create a sample of features of the given tile name.
 
-    This sample contains all the OGLE3-variable stars and a subset of unknow
+    This sample contains all the know variable stars and a subset of unknow
     sources.
 
     """
@@ -250,82 +250,51 @@ class SampleFeatures(cli.BaseCommand):
 
     def setup(self):
         self.parser.add_argument(
-            "tname", action="store", help="name of the tile to sample")
+            "tnames", action="store", help="name of the tiles to sample", nargs="+")
         self.parser.add_argument(
             "--output", "-o", dest="output", required=True,
             help="path of the sample file")
         self.parser.add_argument(
-            "--sample-size", "-s", dest="sample_size", default=20e+3,
-            type=int, help="sample size of unknow sources")
-        self.parser.add_argument(
-            "--sample-all-class", "-sac", nargs="+",
-            dest="sample_all_class", default=[], action="store",
-            help="The list of positive class to be sampled completely")
+            "--no-cls-size", "-s", dest="no_cls_size", default=2500,
+            type=int, help="sample size of unknow sources by tile")
         self.parser.add_argument(
             "--ignore-memory", "-i", dest="check_memory", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
-        self.parser.add_argument(
-            "--min-proportion", "-mp", dest="min_proportion", default=0.01,
-            action="store", type=float,
-            help="The minimun percentage allowed by a sampling class")
 
-    def handle(self, tname, output, sample_size, sample_all_class, check_memory, min_proportion):
+    def handle(self, tnames, output, no_cls_size, check_memory):
         min_memory, mem = int(32e+9), virtual_memory()
         if check_memory and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
             raise MemoryError(msg.format(min_memory_gb, total_gb))
-        if min_proportion > 1 or min_proportion < 0:
-            msg = "min-proportion must be betwen [0, 1]"
-            raise ValueError(msg)
 
+        import pandas as pd
+
+        result = []
         with db.session_scope() as session:
-            lc = session.query(LightCurves).filter(
-                LightCurves.tile.has(name=tname)).first()
-            print "Reading..."
-            features = lc.features
+            query = session.query(
+                LightCurves).join(Tile).filter(Tile.name.in_(tnames))
+            for lc in query:
+                print "Reading features of tile {}...".format(lc.tile.name)
+                features = pd.DataFrame(lc.features)
+                vss = features[features.vs_type != ""]
+                unk = features[features.vs_type == ""].sample(no_cls_size)
+                result.extend([vss, unk])
 
-        print "Creating Filters..."
-        if sample_all_class:
-            var_filter = np.in1d(features["ogle3_type"], sample_all_class)
+        print "Merging"
+        result = pd.concat(result, ignore_index=True)
+
+        print "Saving to {}".format(output)
+        ext = os.path.splitext(output)[-1]
+        if ext == ".csv":
+            result.to_csv(output, index=False)
+        elif ext == ".pkl":
+            result.to_pickle(output)
         else:
-            var_filter = features["ogle3_type"] != ''
-
-        print "Picking variables..."
-        variables = features[var_filter]
-
-        print "Sampling unknow sources..."
-        unknow = np.random.choice(features[~var_filter], sample_size)
-
-        print "Merging..."
-        sample = np.concatenate((variables, unknow))
-
-        print "Checking sampling..."
-        selected_cls = Counter(features["ogle3_type"])
-        min_selection = sample_size * min_proportion
-        remove_unk = 0
-        for cls in np.unique(features["ogle3_type"]):
-            if cls not in selected_cls or selected_cls[cls] < min_selection:
-                full_cls = features[features["ogle3_type"] == cls]
-                cls_sample_size = np.min([full_cls.size, min_selection])
-                if cls_sample_size > 0:
-                    sample = np.concatenate((
-                        np.random.choice(full_cls, cls_sample_size), sample))
-                    remove_unk += int(cls_sample_size)
-
-        print "Removing class unknow..."
-        if remove_unk > 0:
-            where_unk = np.where(sample[sample["ogle3_type"] == ''])[0]
-
-            remove_unk_size = np.min([where_unk.size, remove_unk])
-            to_remove = np.random.choice(where_unk, remove_unk_size)
-            if len(to_remove):
-                sample = np.delete(sample, to_remove)
-
-        print "Saving..."
-        np.save(output, sample)
+            msg = "unknow type {}".format(output)
+            raise ValueError(msg)
 
 
 class LSClasses(cli.BaseCommand):

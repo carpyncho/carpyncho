@@ -74,8 +74,6 @@ STEPS = [
     "carpyncho.steps.create_lc.CreateLightCurves",
 
     "carpyncho.steps.features_extractor.FeaturesExtractor",
-
-    "carpyncho.steps.sample.Sample",
 ]
 
 
