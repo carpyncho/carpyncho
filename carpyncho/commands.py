@@ -258,11 +258,20 @@ class SampleFeatures(cli.BaseCommand):
             "--no-cls-size", "-s", dest="no_cls_size", default=2500,
             type=int, help="sample size of unknow sources by tile")
         self.parser.add_argument(
+            "--saturated", "-st", dest="no_saturated", default=False,
+            action="store_true",
+            help="Remove all satured sources (Mean magnitude <= 12)")
+        self.parser.add_argument(
+            "--faint", "-ft", dest="np_faint", default=False,
+            action="store_true",
+            help="Remove all satured sources (Mean magnitude >= 16.5)")
+        self.parser.add_argument(
             "--ignore-memory", "-i", dest="check_memory", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
 
-    def handle(self, tnames, output, no_cls_size, check_memory):
+
+    def handle(self, tnames, output, no_cls_size, no_saturated, no_faint, check_memory):
         min_memory, mem = int(32e+9), virtual_memory()
         if check_memory and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
@@ -278,7 +287,13 @@ class SampleFeatures(cli.BaseCommand):
                 LightCurves).join(Tile).filter(Tile.name.in_(tnames))
             for lc in query:
                 print "Reading features of tile {}...".format(lc.tile.name)
+
                 features = pd.DataFrame(lc.features)
+                if no_saturated:
+                    features = features[features.Mean > 12]
+                if no_faint:
+                    features = features[features.Mean < 16.5]
+
                 vss = features[features.vs_type != ""]
                 unk = features[features.vs_type == ""].sample(no_cls_size)
                 result.extend([vss, unk])
