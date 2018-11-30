@@ -255,16 +255,16 @@ class SampleFeatures(cli.BaseCommand):
             "--output", "-o", dest="output", required=True,
             help="path of the sample file")
         self.parser.add_argument(
-            "--no-cls-size", "-s", dest="no_cls_size", default=2500,
+            "--ucls-size", "-u", dest="no_cls_size", default=2500,
             type=int, help="sample size of unknow sources by tile")
         self.parser.add_argument(
-            "--saturated", "-st", dest="no_saturated", default=False,
+            "--no-saturated", "-ns", dest="no_saturated", default=False,
             action="store_true",
-            help="Remove all satured sources (Mean magnitude <= 12)")
+            help="Remove all satured sources (Mean magnitude < 12)")
         self.parser.add_argument(
-            "--faint", "-ft", dest="np_faint", default=False,
+            "--no-faint", "-nf", dest="no_faint", default=False,
             action="store_true",
-            help="Remove all satured sources (Mean magnitude >= 16.5)")
+            help="Remove all satured sources (Mean magnitude > 16.5)")
         self.parser.add_argument(
             "--ignore-memory", "-i", dest="check_memory", default=True,
             action="store_false",

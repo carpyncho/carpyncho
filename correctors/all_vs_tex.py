@@ -32,5 +32,4 @@ def main():
         df.columns = ["Nombre", u"Tamaño", "Variables"]
         print df.to_latex(index=False)
 
-
 main()
