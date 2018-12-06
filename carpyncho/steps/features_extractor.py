@@ -368,7 +368,8 @@ class FeaturesExtractor(run.Step):
                     fs=self.fs, obs=obs, tile_name=lc.tile.name,
                     chunkn=chunkn + 1, chunkst=chunkst)
                 result = mp_apply(
-                    sources, extractor, procs=self.mp_cores, chunks=self.mp_split)
+                    sources, extractor, procs=self.mp_cores,
+                    chunks=self.mp_split)
                 result = self.to_recarray(result)
 
                 if features is None:
