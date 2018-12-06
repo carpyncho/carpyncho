@@ -38,6 +38,9 @@ from .steps.match import Match
 from .steps.create_lc import CreateLightCurves
 from .steps.features_extractor import FeaturesExtractor
 
+from .commands import (
+    Paths, BuildBin, LSTile, LSPawprint, LSSync, SetTileStatus, SampleFeatures)
+
 from .lib.beamc import add_columns
 
 
@@ -99,11 +102,12 @@ class CarpynchoTestMixin(object):
         self.runned = self.run_another_tests(self.run_before)
 
     def teardown(self):
-        shutil.rmtree(self.work_dir)
+        if hasattr(self, "work_dir") and os.path.exists(self.work_dir):
+            shutil.rmtree(self.work_dir)
 
 
 # =============================================================================
-# TESTS
+# LOADER TEST
 # =============================================================================
 
 class LoaderTestCase(CarpynchoTestMixin, qa.TestCase):
@@ -116,6 +120,10 @@ class LoaderTestCase(CarpynchoTestMixin, qa.TestCase):
         self.assertStreamCount(1, models.PawprintStackXTile)
         self.assertStreamCount(1, models.PawprintStack)
 
+
+# =============================================================================
+# STEP TESTS
+# =============================================================================
 
 class ReadPawprintStackTestCase(CarpynchoTestMixin, qa.TestCase):
 
@@ -372,3 +380,106 @@ class FeaturesExtractorTestCase(CarpynchoTestMixin, qa.TestCase):
         features = tile.lcurves.features
         self.assertEquals(len(features), self.sample)
         self.assertTrue(tile.ready)
+        np.save("features.npy", features)
+
+
+# =============================================================================
+# COMMANDS TESTS
+# =============================================================================
+
+class PathsTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = Paths
+
+    def validate(self):
+        self.assertIn(self.work_dir, self.command_status.out)
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class BuildBinCase(CarpynchoTestMixin, qa.TestCase):
+
+    subject = BuildBin
+
+    def setup(self):
+        self.patch("carpyncho.bin.build")
+
+        from . import bin  # noqa
+        self.build = bin.build
+
+    def validate(self):
+        self.build.assert_called()
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class LSTileTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = LSTile
+
+    def validate(self):
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class LSPawprintTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = LSPawprint
+
+    def validate(self):
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class LSSyncTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = LSSync
+
+    def validate(self):
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class SetTileStatusTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = SetTileStatus
+
+    def setup(self):
+        super(SetTileStatusTestCase, self).setup()
+        self.cliargs.extend(["b202", "--status", "locked"])
+
+    def validate(self):
+        tile = self.session.query(models.Tile).one()
+
+        self.assertEquals(tile.status, "locked")
+        self.assertEquals(self.command_status.exit_status, 0)
+
+
+class SampleFeaturesTestCase(CarpynchoTestMixin, qa.TestCase):
+
+    run_before = [LoaderTestCase]
+    subject = SampleFeatures
+
+    def setup(self):
+        super(SampleFeaturesTestCase, self).setup()
+        self.cliargs.extend(["b202", "-o", "salida.pkl", "-u", "10"])
+
+        arr_path = os.path.join(self.test_cache, "features.npy")
+        arr = np.load(arr_path)
+        self.patch(
+            "carpyncho.models.tile.LightCurves.features", arr)
+
+        tile = self.session.query(models.Tile).one()
+
+        lc = models.LightCurves(tile=tile)
+
+        self.save(lc)
+        self.save(tile)
+
+        self.patch("pandas.DataFrame.to_pickle")
+
+    def validate(self):
+        self.assertEquals(self.command_status.exit_status, 0)
+
+        import pandas as pd  # noqa
+        pd.DataFrame.to_pickle.assert_called_once_with("salida.pkl")
