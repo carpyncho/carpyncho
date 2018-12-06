@@ -22,8 +22,6 @@ import os
 import shutil
 import sh
 
-import pandas as pd
-
 import numpy as np
 
 from corral import qa, conf
@@ -114,7 +112,7 @@ class LoaderTestCase(CarpynchoTestMixin, qa.TestCase):
 
     def validate(self):
         self.assertStreamHas(
-            models.Tile, models.Tile.name=="b202")
+            models.Tile, models.Tile.name == "b202")
         self.assertStreamCount(1, models.PawprintStackXTile)
         self.assertStreamCount(1, models.PawprintStack)
 

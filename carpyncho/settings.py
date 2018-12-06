@@ -25,8 +25,6 @@ import pandas
 
 import colored_traceback.auto  # noqa
 
-from corral import util
-
 
 # =============================================================================
 # CONFIGURATIONS
@@ -128,9 +126,10 @@ SAMPLES_DIR = os.path.join(DATA_PATH, "samples")
 
 DEBUG = DEBUG_PROCESS
 
+
 # =============================================================================
 # WARNINGS DISABLE
 # =============================================================================
 
-import warnings
+import warnings  # noqa
 warnings.simplefilter("ignore", FutureWarning)

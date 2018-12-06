@@ -8,7 +8,6 @@
 from __future__ import print_function
 
 import warnings
-import uuid
 import datetime as dt
 import os
 import glob
@@ -49,8 +48,6 @@ class Extractor(object):
         return srcs
 
     def extract(self, src_id):
-        #~ print("[{}-chunk-{}/{}] Extracting Source {}/{}...".format(
-            #~ self._tname, self._chunkn, self._chunkst, self._cnt, self._total))
         print("!!! START:",  src_id)
         self._cnt += 1
 
@@ -88,7 +85,7 @@ class Extractor(object):
         print("!!! END:",  src_id)
         return series
 
-# 32340000197922
+
 # =============================================================================
 # STEP
 # =============================================================================
@@ -211,7 +208,10 @@ class FeaturesExtractor(run.Step):
 
     def to_cache(self, lc, features, force=False):
         """Store the features into a cache if its needed"""
-        if features is not None and (force or len(features) >= self.write_limit):
+        write = (
+            features is not None and
+            (force or len(features) >= self.write_limit))
+        if write:
             print("Caching {} new features...".format(len(features)))
             cache_path = self.get_cache_path(lc)
             filename = "cache_{}.npy".format(dt.datetime.now().isoformat())
@@ -291,7 +291,7 @@ class FeaturesExtractor(run.Step):
 
         # AMPLITUDES
         ampH = .11 + 1.65 * (feats["Amplitude"] - .18)
-        ampJ = -.02  + 3.6 * (feats["Amplitude"] - .18)
+        ampJ = -.02 + 3.6 * (feats["Amplitude"] - .18)
 
         columns = [
             ('c89_m2', c89_m2),
@@ -317,17 +317,19 @@ class FeaturesExtractor(run.Step):
         obs = obs[obs.bm_src_id.isin(feats_df.id)]
         obs = obs.groupby("bm_src_id")
         obs = obs.apply(
-            lambda g: g.sort_values("pwp_stack_src_mag3", ascending=False).head(1))
+            lambda g: g.sort_values(
+                "pwp_stack_src_mag3", ascending=False).head(1))
         obs = obs[["bm_src_id", "pwp_stack_src_hjd"]]
         df = pd.merge(
-            pd.merge(feats_df, sources, on="id"), obs, left_on="id", right_on="bm_src_id")
+            pd.merge(feats_df, sources, on="id"),
+            obs, left_on="id", right_on="bm_src_id")
 
         del feats_df, obs, sources
 
         def _ppmb(r):
             t0 = r.pwp_stack_src_hjd
             mb_hjd = np.mean((r.hjd_h, r.hjd_k, r.hjd_j))
-            return np.abs(np.modf(mb_hjd  - t0)[0]) / r.PeriodLS
+            return np.abs(np.modf(mb_hjd - t0)[0]) / r.PeriodLS
 
         df["ppmb"] = df.apply(_ppmb, axis=1)
 

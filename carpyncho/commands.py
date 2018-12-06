@@ -17,31 +17,17 @@
 # IMPORTS
 # =============================================================================
 
-import sys
 import os
-import shutil
-import argparse
-import json
-from pprint import pprint
-from collections import Counter
-
 
 from psutil import virtual_memory
 
-import sh
-
-import numpy as np
-
 from texttable import Texttable
-
-from sqlalchemy.engine import url
-
-from sqlalchemy_utils import database_exists, create_database, drop_database
 
 from corral import cli, conf, db, core
 
 from carpyncho import bin
-from carpyncho.models import Tile, PawprintStack, PawprintStackXTile, LightCurves
+from carpyncho.models import (
+    Tile, PawprintStack, PawprintStackXTile, LightCurves)
 
 
 # =============================================================================
@@ -57,53 +43,6 @@ def log2critcal():
 # =============================================================================
 # COMMANDS
 # =============================================================================
-
-if conf.settings.DEBUG:
-
-    class FreshLoad(cli.BaseCommand):
-        """Reset the database and run the loader class (only in debug)"""
-
-        def setup(self):
-            self.conn = conf.settings.CONNECTION
-
-            urlo = url.make_url(self.conn)
-            self.backend = urlo.get_backend_name()
-            self.db = urlo.database
-
-        def recreate_pg(self):
-            if database_exists(self.conn):
-                drop_database(self.conn)
-            create_database(self.conn)
-
-        def recreate_sqlite(self):
-            try:
-                os.remove(self.db)
-            except OSError:
-                pass
-
-        def handle(self):
-            if self.backend == "postgresql":
-                self.recreate_pg()
-            elif self.backend == "sqlite":
-                self.recreate_sqlite()
-
-            try:
-                shutil.rmtree("_input_data")
-            except OSError:
-                pass
-
-            try:
-                shutil.rmtree("_data")
-            except OSError:
-                pass
-
-            if not os.path.exists("example_data"):
-                os.system("tar jxf res/example_data.tar.bz2")
-
-            shutil.copytree("example_data", "_input_data")
-            os.system("python in_corral.py createdb --noinput")
-            os.system("python in_corral.py load")
-
 
 class Paths(cli.BaseCommand):
     """Show the paths of carpyncho"""
@@ -250,7 +189,8 @@ class SampleFeatures(cli.BaseCommand):
 
     def setup(self):
         self.parser.add_argument(
-            "tnames", action="store", help="name of the tiles to sample", nargs="+")
+            "tnames", action="store", nargs="+",
+            help="name of the tiles to sample")
         self.parser.add_argument(
             "--output", "-o", dest="output", required=True,
             help="path of the sample file")
@@ -266,14 +206,13 @@ class SampleFeatures(cli.BaseCommand):
             action="store_true",
             help="Remove all satured sources (Mean magnitude > 16.5)")
         self.parser.add_argument(
-            "--ignore-memory", "-i", dest="check_memory", default=True,
+            "--ignore-memory", "-i", dest="cm", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
 
-
-    def handle(self, tnames, output, no_cls_size, no_saturated, no_faint, check_memory):
+    def handle(self, tnames, output, no_cls_size, no_saturated, no_faint, cm):
         min_memory, mem = int(32e+9), virtual_memory()
-        if check_memory and mem.total < min_memory:
+        if cm and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
@@ -310,72 +249,3 @@ class SampleFeatures(cli.BaseCommand):
         else:
             msg = "unknow type {}".format(output)
             raise ValueError(msg)
-
-
-class LSClasses(cli.BaseCommand):
-    """List the objective classes in the given tile"""
-
-    def setup(self):
-        self.parser.add_argument(
-            "tname", action="store", help="name of the tile to list classes")
-
-    def handle(self, tname):
-        log2critcal()
-
-        with db.session_scope() as session:
-            tile = session.query(Tile).filter(Tile.name==tname).first()
-            classes = Counter(tile.load_npy_file()["ogle3_type"])
-
-        table = Texttable(max_width=0)
-        table.set_deco(Texttable.BORDER | Texttable.HEADER | Texttable.VLINES)
-        table.header(("OGLE3 Type", "Count"))
-
-        for cls, cnt in sorted(classes.items()):
-            table.add_row([cls or "''", cnt])
-
-        print(table.draw())
-        print("Count: {}".format(np.sum(classes.values())))
-
-
-class DumpDB(cli.BaseCommand):
-    """Dump the database to a JSON file"""
-
-    def setup(self):
-        self.parser.add_argument(
-            "dump_file", action="store", type=argparse.FileType(mode="w"))
-
-    def handle(self, dump_file):
-        raise NotImplementedError()
-        log2critcal()
-        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
-        data = {}
-        with db.session_scope() as session:
-            setup_schema(db.Model, session)
-            for model in models:
-                model_data = []
-                schema = model.__marshmallow__()
-                for obj in session.query(model):
-                    model_data.append(schema.dump(obj).data)
-                data[model.__name__] = model_data
-        json.dump(data, dump_file, indent=2)
-
-
-class LoadDB(cli.BaseCommand):
-    """Load the database from a JSON file"""
-
-    def setup(self):
-        self.parser.add_argument(
-            "load_file", action="store", type=argparse.FileType())
-
-    def handle(self, load_file):
-        raise NotImplementedError()
-        log2critcal()
-        models = (Tile, PawprintStack, PawprintStackXTile, LightCurves)
-        data = json.load(load_file)
-        with db.session_scope() as session:
-            setup_schema(db.Model, session)
-            for model in models:
-                model_data = data[model.__name__]
-                schema = model.__marshmallow__()
-                for row in model_data:
-                    import ipdb; ipdb.set_trace()

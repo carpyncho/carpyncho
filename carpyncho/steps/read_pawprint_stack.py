@@ -9,8 +9,6 @@ import tempfile
 import os
 import copy
 
-import sh
-
 import numpy as np
 
 from corral import run
@@ -124,6 +122,7 @@ class ReadPawprintStack(run.Step):
 
         # create ids
         ps_name = "3" + str(pwp_id).zfill(7)
+
         def get_id(order):
             order = str(order).rjust(8, "0")
             return (ps_name + order)

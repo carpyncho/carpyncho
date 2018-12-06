@@ -5,8 +5,6 @@
 # IMPORTS
 # =============================================================================
 
-import copy
-
 from corral import run
 
 import numpy as np

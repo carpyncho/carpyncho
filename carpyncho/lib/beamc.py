@@ -257,7 +257,7 @@ def extinction(ra, dec, box_size, law, inframe="fk5",
     try:
         beamc_data = np.loadtxt(StringIO(response.text), dtype=dtype)
     except:
-        import ipdb; ipdb.set_trace()
+        raise
     if beamc_data.ndim == 0:
         beamc_data = beamc_data.flatten()
 

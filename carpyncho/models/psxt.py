@@ -7,16 +7,13 @@
 # =============================================================================
 # IMPORTS
 # =============================================================================
+
 import os
-import shutil
 
 import numpy as np
 
 from corral import db
 from corral.conf import settings
-
-from .tile import Tile
-from .pawprint_stack import PawprintStack
 
 
 # =============================================================================

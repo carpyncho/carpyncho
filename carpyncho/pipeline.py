@@ -35,8 +35,6 @@ class Pipeline(PipelineSetup):
     - IATE-OAC-UNC, FCEIA-UNR, CONICET
 
     """
-
-
     name = "Carpyncho Pipeline"
 
     def setup(self):

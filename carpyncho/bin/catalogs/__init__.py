@@ -8,7 +8,6 @@ import pandas as pd
 from astropy.coordinates import SkyCoord
 from astropy.io.votable import parse
 
-import sh
 from sh import bzip2
 
 from ...lib.context_managers import cd
@@ -53,10 +52,16 @@ def get_ogle_4_resume():
         bzip2("-f", "-dk", "ogle4.csv.bz2")
         df = pd.read_csv("ogle4.csv")
 
-        ra = df["ra"].apply(
-                lambda d: d.replace(":", "h", 1).replace(":", "m", 1).replace(":", ".") + "s")
-        dec = df["dec"].apply(
-                lambda d: d.replace(":", "d", 1).replace(":", "m", 1).replace(":", ".") + "s")
+        def _ra(d):
+            d = d.replace(":", "h", 1).replace(":", "m", 1)
+            return d.replace(":", ".") + "s"
+        ra = df["ra"].apply(_ra)
+
+        def _dec(d):
+            d = d.replace(":", "d", 1).replace(":", "m", 1)
+            return d.replace(":", ".") + "s"
+
+        dec = df["dec"].apply(_dec)
 
         coords = SkyCoord(ra, dec, frame='icrs')
         df['ra'] = pd.Series(coords.ra.deg, index=df.index)

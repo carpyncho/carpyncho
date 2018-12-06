@@ -14,8 +14,6 @@ from collections import Counter
 
 import numpy as np
 
-import pandas as pd
-
 from sqlalchemy.orm import validates
 
 from corral import db
@@ -109,6 +107,7 @@ class Tile(db.Model):
         if self._raw_filename:
             return os.path.join(
                 settings.RAW_TILES_DIR, self._raw_filename)
+
     @property
     def npy_file_path(self):
         if self._npy_filename:

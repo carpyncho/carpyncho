@@ -36,7 +36,10 @@ def iter_matchs(tile_name, tile_id, pawprint_stack_id, band,
         yield row
 
 
-def match(pxt_id, tile_name, tile_id, pawprint_stack_id, band, tile_data, pwp_path):
+def match(
+    pxt_id, tile_name, tile_id,
+    pawprint_stack_id, band, tile_data, pwp_path
+):
     pwp_data = np.load(pwp_path)
 
     # create dtype
@@ -82,7 +85,7 @@ class Match(run.Step):
     def generate(self):
         query = super(Match, self).generate()
         models = list(query)
-        number = int(len(models) / CPUS)
+        number = int(len(models) / CPUS) or 1
         return iter(np.array_split(models, number))
 
     def validate(self, chunk):

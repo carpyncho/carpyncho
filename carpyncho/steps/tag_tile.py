@@ -5,23 +5,13 @@
 # IMPORTS
 # =============================================================================
 
-import copy
-
 from corral import run
 
 import numpy as np
 
-import pandas as pd
-
 from .. import bin
 from ..lib import matcher
 from ..models import Tile
-
-
-# =============================================================================
-# CONSTANTS
-# =============================================================================
-
 
 
 # =============================================================================
@@ -57,7 +47,7 @@ class VSTagTile(run.Step):
 
         types = np.chararray(len(tile_data), itemsize=13)
         ids = np.chararray(len(tile_data), itemsize=25)
-        catalogs  = np.chararray(len(tile_data), itemsize=13)
+        catalogs = np.chararray(len(tile_data), itemsize=13)
 
         types[:], ids[:] = "", ""
 
