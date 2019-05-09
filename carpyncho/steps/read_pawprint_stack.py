@@ -169,7 +169,6 @@ class ReadPawprintStack(run.Step):
     # =========================================================================
 
     def process(self, pwp):
-
         with fits.open(pwp.raw_file_path) as hdulist:
             pwp.band, pwp.mjd = self.extract_headers(hdulist)
 

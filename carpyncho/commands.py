@@ -196,15 +196,18 @@ class SampleFeatures(cli.BaseCommand):
             help="path of the sample file")
         self.parser.add_argument(
             "--ucls-size", "-u", dest="no_cls_size", default=2500,
-            type=int, help="sample size of unknow sources by tile")
+            type=(lambda v: int(v) if v != "ALL" else v),
+            help=(
+                "sample size of unknow sources by tile."
+                "Use 'ALL' to use all the unknow sources"))
         self.parser.add_argument(
             "--no-saturated", "-ns", dest="no_saturated", default=False,
             action="store_true",
-            help="Remove all satured sources (Mean magnitude < 12)")
+            help="Remove all satured sources (Mean magnitude <= 12)")
         self.parser.add_argument(
             "--no-faint", "-nf", dest="no_faint", default=False,
             action="store_true",
-            help="Remove all satured sources (Mean magnitude > 16.5)")
+            help="Remove all satured sources (Mean magnitude >= 16.5)")
         self.parser.add_argument(
             "--ignore-memory", "-i", dest="cm", default=True,
             action="store_false",
@@ -234,7 +237,11 @@ class SampleFeatures(cli.BaseCommand):
                     features = features[features.Mean < 16.5]
 
                 vss = features[features.vs_type != ""]
-                unk = features[features.vs_type == ""].sample(no_cls_size)
+
+                unk = features[features.vs_type == ""]
+                if no_cls_size != "ALL":
+                    unk = unk.sample(no_cls_size)
+
                 result.extend([vss, unk])
 
         print "Merging"
