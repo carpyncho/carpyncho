@@ -15,7 +15,7 @@ from corral.conf import settings
 
 PATH = os.path.abspath(os.path.dirname(__file__))
 
-LD_PATH = settings.get("LD_PATH", "/sw/lib")
+LD_PATH = "/sw/lib"
 
 
 # =============================================================================
@@ -31,6 +31,5 @@ def build():
 
 
 def execute(*args, **kwargs):
-    import ipdb; ipdb.set_trace()
     vvv_flx2mag = sh.Command(os.path.join(PATH, "vvv_flx2mag"))
     return vvv_flx2mag(*args, **kwargs)
