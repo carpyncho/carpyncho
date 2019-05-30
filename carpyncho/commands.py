@@ -105,8 +105,11 @@ class LSPawprint(cli.BaseCommand):
             "-st", "--status", dest="status", action="store",
             choices=PawprintStack.statuses.enums, nargs="+",
             help="Show only the given status")
+        self.parser.add_argument(
+            "-t", "--tile", dest="tiles", action="store", nargs="+",
+            help="Show only the given tile/s")
 
-    def handle(self, status):
+    def handle(self, status, tiles):
         log2critcal()
 
         table = Texttable(max_width=0)
@@ -117,6 +120,12 @@ class LSPawprint(cli.BaseCommand):
             query = session.query(
                 PawprintStack.name, PawprintStack.status,
                 PawprintStack.band, PawprintStack.mjd, PawprintStack.size)
+            if tiles:
+                ids = [
+                    r[0] for r in
+                    session.query(PawprintStackXTile.pawprint_stack_id).join(Tile).filter(Tile.name.in_(tiles))]
+                query = query.filter(PawprintStack.id.in_(ids))
+
             if status:
                 query = query.filter(PawprintStack.status.in_(status))
             map(table.add_row, query)
@@ -191,31 +200,84 @@ class SampleFeatures(cli.BaseCommand):
         self.parser.add_argument(
             "tnames", action="store", nargs="+",
             help="name of the tiles to sample")
+
         self.parser.add_argument(
             "--output", "-o", dest="output", required=True,
             help="path of the sample file")
+
+        self.parser.add_argument(
+            "--cone-search", "-cs", dest="cone_search",  nargs=3,
+            type=float, metavar=('RA', 'DEC', 'RADIUS'), help=(
+                "Describes sky position and an angular distance, defining a "
+                "cone on the sky. The response returns a list of astronomical "
+                "sources from the catalog whose positions lie within the cone"))
+
         self.parser.add_argument(
             "--ucls-size", "-u", dest="no_cls_size", default=2500,
             type=(lambda v: int(v) if v != "ALL" else v),
             help=(
                 "sample size of unknow sources by tile."
                 "Use 'ALL' to use all the unknow sources"))
+
+        self.parser.add_argument(
+            "--no-variable-stars", "-nvs", dest="variable_stars",
+            default=True, action="store_false",
+            help="Remove all tagged variable stars")
+
         self.parser.add_argument(
             "--no-saturated", "-ns", dest="no_saturated", default=False,
             action="store_true",
             help="Remove all satured sources (Mean magnitude <= 12)")
+
         self.parser.add_argument(
             "--no-faint", "-nf", dest="no_faint", default=False,
             action="store_true",
-            help="Remove all satured sources (Mean magnitude >= 16.5)")
+            help="Remove all saturated sources (Mean magnitude >= 16.5)")
+
         self.parser.add_argument(
-            "--ignore-memory", "-i", dest="cm", default=True,
+            "--ignore-memory", "-i", dest="memory_check", default=True,
             action="store_false",
             help="ignore the memory che before run the command")
 
-    def handle(self, tnames, output, no_cls_size, no_saturated, no_faint, cm):
+    def cone_search(self, features, ra_c, dec_c, sr_c):
+        import numpy as np
+
+
+        # sometimes the ra_k cames in str...
+        features.ra_k = features.ra_k.astype(float)
+        features.dec_k = features.dec_k.astype(float)
+
+        # the conesearch
+        # based on:
+        #   https://travis-ci.org/toros-astro/astroalign/builds/539052367
+        # ORIGINAL:
+        # SELECT *
+        # FROM RASS_PHOTONS
+        # WHERE 2 * ASIN(
+        #   SQRT(
+        #       SIN(($DEC_C-DEC)/2) *
+        #       SIN(($DEC_C-DEC)/2) +
+        #       COS($DEC_C) * COS(DEC) *
+        #       SIN(($RA_C - RA)/2) *
+        #       SIN(($RA_C - RA)/2))) <= $SR_C
+        query = 2. * np.arcsin(
+            np.sqrt(
+                np.sin((dec_c - features.dec_k) / 2.) *
+                np.sin((dec_c - features.dec_k) / 2.) +
+                np.cos(dec_c) * np.cos(features.dec_k) *
+                np.sin((ra_c - features.ra_k) / 2.) *
+                np.sin((ra_c - features.ra_k) / 2.))) <= sr_c
+
+        # filtering
+        features = features[query]
+        return features
+
+
+    def handle(
+        self, tnames, output, cone_search, no_cls_size, no_saturated,
+        no_faint, variable_stars, memory_check):
         min_memory, mem = int(32e+9), virtual_memory()
-        if cm and mem.total < min_memory:
+        if memory_check and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
@@ -231,18 +293,31 @@ class SampleFeatures(cli.BaseCommand):
                 print "Reading features of tile {}...".format(lc.tile.name)
 
                 features = pd.DataFrame(lc.features)
+
                 if no_saturated:
+                    print "No saturated <-"
                     features = features[features.Mean > 12]
+
                 if no_faint:
+                    print "No Faint <-"
                     features = features[features.Mean < 16.5]
 
-                vss = features[features.vs_type != ""]
+                if cone_search:
+                    ra, dec, radius = cone_search
+                    print "ConeSearch({}, {}, {}) <-".format(ra, dec, radius)
+                    features = self.cone_search(
+                        features=features, ra_c=ra, dec_c=dec, sr_c=radius)
 
+                if variable_stars:
+                    print "Retrieving all VS <-"
+                    vss = features[features.vs_type != ""]
+                    result.append(vss)
+
+                print "Sampling Unk Src <-"
                 unk = features[features.vs_type == ""]
                 if no_cls_size != "ALL":
                     unk = unk.sample(no_cls_size)
-
-                result.extend([vss, unk])
+                result.append(unk)
 
         print "Merging"
         result = pd.concat(result, ignore_index=True)
