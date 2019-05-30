@@ -73,7 +73,14 @@ class Loader(run.Loader):
             os.remove(tile_path)
 
         for tile_name, pawprints in self.pawprints.items():
-            tile = self.session.query(Tile).filter_by(name=tile_name).first()
+            tile = self.session.query(Tile).filter_by(name=tile_name)
+
+            if not tile.count():
+                print("SKIPING PAWPRINTS FOR {}".format(tile_name))
+                continue
+
+            print("PROCESSING PAWPRINTS FOR {}".format(tile_name))
+            tile = tile.one()
             for pwp_path in pawprints:
                 name = os.path.splitext(os.path.basename(pwp_path))[0]
                 pwp = self.session.query(
