@@ -1,2 +1,3 @@
-# Carpyncho Engine
-Carpyncho VVV Features extractor stand alone library
+# Carpyncho Pipeline
+
+Carpyncho VVV Features extractor pipeline
