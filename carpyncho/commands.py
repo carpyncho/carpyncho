@@ -214,19 +214,25 @@ class SampleFeatures(cli.BaseCommand):
 
         self.parser.add_argument(
             "--ucls-size", "-u", dest="no_cls_size", default=2500,
-            type=(lambda v: int(v) if v != "ALL" else v),
+            type=(lambda v: int(v) if v not in ("ALL", "O2O") else v),
             help=(
                 "sample size of unknow sources by tile."
-                "Use 'ALL' to use all the unknow sources"))
+                "Use 'ALL' to use all the unknow sources "
+                "or 'O2O' to sample the same number of variable stars"))
 
         self.parser.add_argument(
-            "--no-variable-stars", "-nvs", dest="variable_stars",
+            "--no-variable-stars", "-nvs", dest="include_vs",
             default=True, action="store_false",
             help="Remove all tagged variable stars")
 
         self.parser.add_argument(
-            "--no-saturated", "-ns", dest="no_saturated", default=False,
-            action="store_true",
+            "--variable-stars-type", "-vst", dest="vs_type",
+            action="store", type=str, default=None,
+            help="Filter the variable stars by a given regex")
+
+        self.parser.add_argument(
+            "--no-saturated", "-ns", dest="no_saturated",
+            default=False, action="store_true",
             help="Remove all satured sources (Mean magnitude <= 12)")
 
         self.parser.add_argument(
@@ -242,14 +248,13 @@ class SampleFeatures(cli.BaseCommand):
     def cone_search(self, features, ra_c, dec_c, sr_c):
         import numpy as np
 
-
         # sometimes the ra_k cames in str...
         features.ra_k = features.ra_k.astype(float)
         features.dec_k = features.dec_k.astype(float)
 
         # the conesearch
         # based on:
-        #   https://travis-ci.org/toros-astro/astroalign/builds/539052367
+        #   http://www.g-vo.org/pmwiki/Products/HEALPixIndexing
         # ORIGINAL:
         # SELECT *
         # FROM RASS_PHOTONS
@@ -275,13 +280,23 @@ class SampleFeatures(cli.BaseCommand):
 
     def handle(
         self, tnames, output, cone_search, no_cls_size, no_saturated,
-        no_faint, variable_stars, memory_check):
+        no_faint, include_vs, memory_check, vs_type):
         min_memory, mem = int(32e+9), virtual_memory()
         if memory_check and mem.total < min_memory:
             min_memory_gb = min_memory / 1e+9
             total_gb = mem.total / 1e+9
             msg = "You need at least {}GB of memory. Found {}GB"
             raise MemoryError(msg.format(min_memory_gb, total_gb))
+
+        if no_cls_size == "O2O" and not include_vs:
+            self.parser.error(
+                "You can't set the parameter '--ucls-size/-u' to 'O2O' "
+                "if you set the flag '--no-variable-stars/-nvs'")
+
+        if vs_type and not include_vs:
+            self.parser.error(
+                "You can't set the parameter '--variable-stars-type/-vst' "
+                "if you set the flag '--no-variable-stars/-nvs'")
 
         import pandas as pd
 
@@ -293,6 +308,7 @@ class SampleFeatures(cli.BaseCommand):
                 print "Reading features of tile {}...".format(lc.tile.name)
 
                 features = pd.DataFrame(lc.features)
+                print "Sources {}".format(len(features))
 
                 if no_saturated:
                     print "No saturated <-"
@@ -308,15 +324,25 @@ class SampleFeatures(cli.BaseCommand):
                     features = self.cone_search(
                         features=features, ra_c=ra, dec_c=dec, sr_c=radius)
 
-                if variable_stars:
-                    print "Retrieving all VS <-"
+                if include_vs:
+                    print "Retrieving '{}' VS <-".format(vs_type or all)
                     vss = features[features.vs_type != ""]
-                    result.append(vss)
+                    if vs_type:
+                        vss = vss[vss.vs_type.str.contains(vs_type)]
+                    if len(vss):
+                        result.append(vss)
 
                 print "Sampling Unk Src <-"
                 unk = features[features.vs_type == ""]
-                if no_cls_size != "ALL":
-                    unk = unk.sample(no_cls_size)
+                if no_cls_size == "ALL":
+                    sample_size = len(unk)
+                elif no_cls_size == "O2O":
+                    sample_size = len(vss)
+                    if sample_size == 0:
+                        continue
+                else:
+                    sample_size = no_cls_size
+                unk = unk.sample(sample_size)
                 result.append(unk)
 
         print "Merging"
@@ -328,6 +354,8 @@ class SampleFeatures(cli.BaseCommand):
             result.to_csv(output, index=False)
         elif ext == ".pkl":
             result.to_pickle(output)
+        elif ext == ".bz2":
+            result.to_pickle(output, compression="bz2")
         else:
             msg = "unknow type {}".format(output)
             raise ValueError(msg)
