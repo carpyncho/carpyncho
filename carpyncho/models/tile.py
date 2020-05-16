@@ -142,6 +142,8 @@ class LightCurves(db.Model):
     tile = db.relationship(
         "Tile", backref=db.backref("lcurves", uselist=False), lazy='joined')
 
+    # ~ feats_version  = db.Column(db.String(10), default="1.0")
+
     _src_obs_counter = db.Column("src_obs_cnt", db.PickleType, nullable=True)
 
     def __repr__(self):

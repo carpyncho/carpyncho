@@ -70,7 +70,7 @@ def get_ogle_4_resume():
 
         df = df[["ID", "ra", "dec", "cls"]]
         df["catalog"] = pd.Series("OGLE-4", index=df.index)
-        os.remove("ogle4.csv")
+        # ~ os.remove("ogle4.csv")
         return df
 
 
@@ -100,7 +100,7 @@ def get_vizier_resume():
             return "RRLyr-" + subpart
         df["cls"] = df.cls.apply(change_type)
 
-        os.remove("vizier_votable.vot")
+        # ~ os.remove("vizier_votable.vot")
         return df
 
 
@@ -108,15 +108,15 @@ def build():
     print("Bulding Vizier")
     vizier = get_vizier_resume()
     print("Building OGLE III")
-    ogle3 = get_ogle_3_resume()
+    # ~ ogle3 = get_ogle_3_resume()
     print("Building OGLE IV")
     ogle4 = get_ogle_4_resume()
 
     print("Merging")
-    catalog = pd.concat((ogle3, ogle4, vizier), ignore_index=True)
+    # ~ catalog = pd.concat((ogle3, ogle4, vizier), ignore_index=True)
 
     print("Saving catalog")
-    catalog.to_pickle(CATALOG_PATH)
+    # ~ catalog.to_pickle(CATALOG_PATH)
 
 
 # =============================================================================

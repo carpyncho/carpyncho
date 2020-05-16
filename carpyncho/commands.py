@@ -347,6 +347,7 @@ class SampleFeatures(cli.BaseCommand):
 
         print "Merging"
         result = pd.concat(result, ignore_index=True)
+        print("Total Size {}".format(len(result)))
 
         print "Saving to {}".format(output)
         ext = os.path.splitext(output)[-1]

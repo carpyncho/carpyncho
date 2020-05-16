@@ -25,6 +25,7 @@ from ..models import LightCurves
 
 from ..lib.mppandas import mp_apply, CORES
 from ..lib.beamc import add_columns
+from ..lib import feets_patch # Noqa
 
 
 # =============================================================================
@@ -85,7 +86,6 @@ class Extractor(object):
         print("!!! END:",  src_id)
         return series
 
-
 # =============================================================================
 # STEP
 # =============================================================================
@@ -108,6 +108,8 @@ class FeaturesExtractor(run.Step):
     mp_split = conf.settings.get("FE_MP_SPLIT", CORES)
 
     def setup(self):
+        raise Exception("Add vs_catalog and version")
+
         print("min_observation:", self.min_observation)
         print("chunk_size:", self.chunk_size)
         print("write_limit:", self.write_limit)

@@ -61,7 +61,10 @@ class ReadTile(run.Step):
             fp, skip_header=EPOCHS,
             dtype=SOURCE_DTYPE,
             usecols=USECOLS)
-        flt = (arr["ra_k"] != -9999.0)
+        flt = (
+            (arr["ra_k"] != -9999.0) &
+            (arr["ra_j"] != -9999.0) &
+            (arr["ra_h"] != -9999.0))
         filtered = arr[flt]
         return filtered, len(filtered)
 

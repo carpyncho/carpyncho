@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from corral import db
 from carpyncho.models import *
+from carpyncho.libs import feets_patch
+
+import feets
 
 PATH = "/home/jbcabral/carpyncho3/correctors/"
 import sys
@@ -26,10 +29,30 @@ def to_recarray(sources):
     return sources.astype(dt)
 
 
+fs = feets.FeatureSpace(
+    data=["magnitude", "time", "error"],
+    only=[
+        "PeriodLS", "Period_fit",
+        "Psi_CS", "Psi_eta",
+        "Freq1_harmonics_amplitude_0", "Freq1_harmonics_amplitude_1",
+        "Freq1_harmonics_amplitude_2", "Freq1_harmonics_amplitude_3",
+        "Freq2_harmonics_amplitude_0", "Freq2_harmonics_amplitude_1",
+        "Freq2_harmonics_amplitude_2", "Freq2_harmonics_amplitude_3",
+        "Freq3_harmonics_amplitude_0", "Freq3_harmonics_amplitude_1",
+        "Freq3_harmonics_amplitude_2", "Freq3_harmonics_amplitude_3",
+        "Freq1_harmonics_rel_phase_0", "Freq1_harmonics_rel_phase_1",
+        "Freq1_harmonics_rel_phase_2", "Freq1_harmonics_rel_phase_3",
+        "Freq2_harmonics_rel_phase_0", "Freq2_harmonics_rel_phase_1",
+        "Freq2_harmonics_rel_phase_2", "Freq2_harmonics_rel_phase_3",
+        "Freq3_harmonics_rel_phase_0", "Freq3_harmonics_rel_phase_1",
+        "Freq3_harmonics_rel_phase_2", "Freq3_harmonics_rel_phase_3"])
+
+import ipdb; ipdb.set_trace()
+
 
 def main():
     with db.session_scope() as ses:
-        query = ses.query(LightCurves)
+        query = ses.query(LightCurves).filter(LightCurves.tile.has(name="b278"))
         rows = []
         for lc in query.all():
             print lc
